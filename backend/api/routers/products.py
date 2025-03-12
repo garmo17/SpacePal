@@ -1,0 +1,40 @@
+from fastapi import APIRouter, status, HTTPException
+from services import products as products_service
+from schemas.products import Product
+
+router = APIRouter(prefix="/products", tags=["products"])
+
+@router.get("/", response_model=list[Product], status_code=status.HTTP_200_OK)
+async def get_products(skip: int = 0, limit: int = 10):
+    products = await products_service.list_products(skip, limit)  
+    if not products:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No products found")
+    return products
+
+@router.get("/{id}", response_model=Product, status_code=status.HTTP_200_OK)
+async def get_product(id: int):
+    product = await products_service.get_product(id)  
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    return product
+
+@router.post("/", response_model=Product, status_code=status.HTTP_201_CREATED)
+async def create_product(product_data: Product):
+    created_product = await products_service.create_product(product_data)  
+    if not created_product:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Product already exists")
+    return created_product
+
+@router.delete("/{id}", status_code=status.HTTP_200_OK)
+async def delete_product(id: int):
+    success = await products_service.delete_product(id)  
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    return {"message": "Product deleted successfully"}
+
+@router.put("/{id}", response_model=Product, status_code=status.HTTP_200_OK)
+async def update_product(id: int, product_data: Product):
+    updated_product = await products_service.update_product(id, product_data)  
+    if not updated_product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    return updated_product
