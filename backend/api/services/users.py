@@ -1,36 +1,46 @@
-from schemas.users import User
-
-user_list = [
-    User(id=1, name="Rick", surname="Sanchez", email="rick@sanchez.com"),
-    User(id=2, name="Morty", surname="Smith", email="morty@smith.com"),
-    User(id=3, name="Summer", surname="Smith", email="summer@smith.com")
-]
+from schemas.users import *
+from models.users import UserDB
+from db.database import users_collection
+from bson import ObjectId
 
 async def list_users(skip: int = 0, limit: int = 10):
-    return user_list[skip : skip + limit]
+    users = await users_collection.find().skip(skip).limit(limit).to_list(length=limit)
+    return [from_mongo(user, UserRead) for user in users]
 
-async def get_user(id: int):
-    return next((user for user in user_list if user.id == id), None)
-
-async def create_user(user_data: User):
-    if any(u.id == user_data.id for u in user_list):
+async def get_user(id: str):
+    if not ObjectId.is_valid(id):
         return None
-    user_list.append(user_data)
-    return user_data
+    user = await users_collection.find_one({"_id": ObjectId(id)})
+    return from_mongo(user, UserRead)
+    
 
-async def delete_user(id: int):
+async def create_user(user_data: UserCreate):
+    user_data_db = UserDB(**user_data.model_dump())
+    existing_users = await users_collection.count_documents({"email": user_data_db.email})
+    if existing_users > 0:
+        return None  
+    user_insert_db = await users_collection.insert_one(user_data_db.to_dict())
+    document = await users_collection.find_one({"_id": user_insert_db.inserted_id})
+    return from_mongo(document, UserRead)
+
+
+async def delete_user(id: str):
+    if not ObjectId.is_valid(id):
+        return None
     user = await get_user(id)
     if user:
-        user_list.remove(user)
+        await users_collection.delete_one({"_id": ObjectId(id)})
         return user
     return None
 
-async def update_user(id: int, updated_data: User):
+async def update_user(id: str, updated_data: UserUpdate):
+    if not ObjectId.is_valid(id):
+        return None
     user = await get_user(id)
     if user:
-        user.name = updated_data.name
-        user.surname = updated_data.surname
-        user.email = updated_data.email
-        return user
+        await users_collection.update_one({"_id": ObjectId(id)}, {"$set": updated_data.model_dump(exclude_unset=True)
+})
+        return await get_user(id)
     return None
+
 

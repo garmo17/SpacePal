@@ -1,35 +1,53 @@
-from schemas.spaces import Space
-
-space_list = [
-    Space(id=1, name="Rick", surname="Sanchez", email="rick@sanchez.com"),
-    Space(id=2, name="Morty", surname="Smith", email="morty@smith.com"),
-    Space(id=3, name="Summer", surname="Smith", email="summer@smith.com")
-]
+from schemas.spaces import *
+from models.spaces import SpaceDB
+from db.database import spaces_collection
+from bson import ObjectId
 
 async def list_spaces(skip: int = 0, limit: int = 10):
-    return space_list[skip : skip + limit]
+    spaces = await spaces_collection.find().skip(skip).limit(limit).to_list(length=limit)
+    return [from_mongo(space, SpaceRead) for space in spaces]
 
-async def get_space(id: int):
-    return next((space for space in space_list if space.id == id), None)
-
-async def create_space(space_data: Space):
-    if any(s.id == space_data.id for s in space_list):
+async def get_space(id: str):
+    if not ObjectId.is_valid(id):
         return None
-    space_list.append(space_data)
-    return space_data
+    space = await spaces_collection.find_one({"_id": ObjectId(id)})
+    return from_mongo(space, SpaceRead)
+    
 
-async def delete_space(id: int):
+async def create_space(space_data: SpaceCreate):
+    space_data_db = SpaceDB(**space_data.model_dump())
+    existing_spaces = await spaces_collection.count_documents({"name": space_data_db.name})
+    if existing_spaces > 0:
+        return None  
+    space_insert_db = await spaces_collection.insert_one(space_data_db.to_dict())
+    document = await spaces_collection.find_one({"_id": space_insert_db.inserted_id})
+    return from_mongo(document, SpaceRead)
+
+
+async def delete_space(id: str):
+    if not ObjectId.is_valid(id):
+        return None
     space = await get_space(id)
     if space:
-        space_list.remove(space)
+        await spaces_collection.delete_one({"_id": ObjectId(id)})
         return space
     return None
 
-async def update_space(id: int, updated_data: Space):
+async def update_space(id: str, updated_data: SpaceUpdate):
+    if not ObjectId.is_valid(id):
+        return None
     space = await get_space(id)
     if space:
-        space.name = updated_data.name
-        space.description = updated_data.description
-        space.image = updated_data.image
-        return space
+
+        update_dict = updated_data.model_dump(exclude_unset=True)
+
+        def convert_value(value):
+            if isinstance(value, HttpUrl):
+                return str(value)
+            return value
+        
+        update_dict = {key: convert_value(value) for key, value in update_dict.items()}
+
+        await spaces_collection.update_one({"_id": ObjectId(id)}, {"$set": update_dict})
+        return await get_space(id)
     return None
