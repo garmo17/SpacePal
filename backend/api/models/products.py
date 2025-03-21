@@ -1,13 +1,14 @@
 from bson import ObjectId
+from pydantic.networks import HttpUrl
 
 class ProductDB:
-    def __init__(self, name: str, description: str, price: float, purchase_link: str, image_url: str, category: str, _id: ObjectId = None):
+    def __init__(self, name: str, description: str, price: float, purchase_link: HttpUrl, image_url: HttpUrl, category: str, _id: ObjectId = None):
         self._id = _id or ObjectId()  
         self.name = name
         self.description = description
         self.price = price
-        self.purchase_link = purchase_link
-        self.image_url = image_url
+        self.purchase_link = str(purchase_link)
+        self.image_url = str(image_url)
         self.category = category
         
     def to_dict(self):

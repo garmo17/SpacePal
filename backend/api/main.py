@@ -1,5 +1,5 @@
 from fastapi import APIRouter, FastAPI
-from routers import users 
+from routers import users, spaces, products, styles
 
 app = FastAPI(title="API",
     description="Una API con FastAPI con entidades de usuarios, espacios, productos y estilos",
@@ -7,6 +7,9 @@ app = FastAPI(title="API",
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(users.router)
+api_router.include_router(spaces.router)
+api_router.include_router(products.router)
+api_router.include_router(styles.router)
 
 @api_router.get("/")
 def root():
