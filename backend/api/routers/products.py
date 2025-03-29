@@ -1,6 +1,8 @@
-from fastapi import APIRouter, status, HTTPException
-from services import products as products_service
-from schemas.products import ProductRead, ProductCreate, ProductUpdate
+from fastapi import APIRouter, status, HTTPException, Depends
+from backend.api.dependencies.auth import is_admin
+from backend.api.services import products as products_service
+from backend.api.schemas.products import ProductRead, ProductCreate, ProductUpdate
+
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -19,21 +21,21 @@ async def get_product(id: str):
     return product
 
 @router.post("/", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
-async def create_product(product_data: ProductCreate):
+async def create_product(product_data: ProductCreate, current_user: str = Depends(is_admin)):
     created_product = await products_service.create_product(product_data)  
     if not created_product:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Product already exists")
     return created_product
 
 @router.delete("/{id}", status_code=status.HTTP_200_OK)
-async def delete_product(id: str):
+async def delete_product(id: str, current_user: str = Depends(is_admin)):
     success = await products_service.delete_product(id)  
     if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
     return {"message": "Product deleted successfully"}
 
 @router.put("/{id}", response_model=ProductRead, status_code=status.HTTP_200_OK)
-async def update_product(id: str, product_data: ProductUpdate):
+async def update_product(id: str, product_data: ProductUpdate, current_user: str = Depends(is_admin)):
     updated_product = await products_service.update_product(id, product_data)  
     if not updated_product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")

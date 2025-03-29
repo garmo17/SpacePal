@@ -1,6 +1,7 @@
-from fastapi import APIRouter, status, HTTPException
-from services import styles as styles_service
-from schemas.styles import StyleRead, StyleCreate, StyleUpdate
+from fastapi import APIRouter, status, HTTPException, Depends
+from backend.api.dependencies.auth import is_admin
+from backend.api.services import styles as styles_service
+from backend.api.schemas.styles import StyleRead, StyleCreate, StyleUpdate
 
 router = APIRouter(prefix="/styles", tags=["styles"])
 
@@ -19,21 +20,21 @@ async def get_style(id: str):
     return style
 
 @router.post("/", response_model=StyleRead, status_code=status.HTTP_201_CREATED)
-async def create_style(style_data: StyleCreate):
+async def create_style(style_data: StyleCreate, current_user: str = Depends(is_admin)):
     created_style = await styles_service.create_style(style_data)  
     if not created_style:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Style already exists")
     return created_style
 
 @router.delete("/{id}", status_code=status.HTTP_200_OK)
-async def delete_style(id: str):
+async def delete_style(id: str, current_user: str = Depends(is_admin)):
     success = await styles_service.delete_style(id)  
     if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Style not found")
     return {"message": "Style deleted successfully"}
 
 @router.put("/{id}", response_model=StyleRead, status_code=status.HTTP_200_OK)
-async def update_style(id: str, style_data: StyleUpdate):
+async def update_style(id: str, style_data: StyleUpdate, current_user: str = Depends(is_admin)):
     updated_style = await styles_service.update_style(id, style_data)  
     if not updated_style:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Style not found")

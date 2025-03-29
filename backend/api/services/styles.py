@@ -1,6 +1,6 @@
-from schemas.styles import *
-from models.styles import StyleDB
-from db.database import styles_collection
+from backend.api.schemas.styles import *
+from backend.api.models.styles import StyleDB
+from backend.api.db.database import styles_collection
 from bson import ObjectId
 
 async def list_styles(skip: int = 0, limit: int = 10):

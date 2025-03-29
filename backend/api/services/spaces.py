@@ -1,6 +1,6 @@
-from schemas.spaces import *
-from models.spaces import SpaceDB
-from db.database import spaces_collection
+from backend.api.schemas.spaces import *
+from backend.api.models.spaces import SpaceDB
+from backend.api.db.database import spaces_collection
 from bson import ObjectId
 
 async def list_spaces(skip: int = 0, limit: int = 10):
