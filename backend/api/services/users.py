@@ -45,6 +45,8 @@ async def update_user(id: str, updated_data: UserUpdate):
         return None
     user = await get_user(id)
     if user:
+        if updated_data.password:
+            updated_data.password = get_password_hash(updated_data.password)
         await users_collection.update_one({"_id": ObjectId(id)}, {"$set": updated_data.model_dump(exclude_unset=True)
 })
         return await get_user(id)

@@ -51,10 +51,9 @@ async def delete_user(id: str, current_user: UserDB = Depends(is_admin)):
 
 @router.put("/{id}", response_model=UserRead, status_code=status.HTTP_200_OK)
 async def update_user(id: str, user_data: UserUpdate, current_user: UserDB = Depends(get_current_user)):
-    if id != str(current_user._id):
+    if str(current_user._id) != id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only update your own user")
-
-    updated_user = await users_service.update_user(id, user_data)
+    updated_user = await users_service.update_user(id, user_data)  
     if not updated_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return updated_user
