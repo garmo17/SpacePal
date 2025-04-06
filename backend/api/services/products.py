@@ -1,6 +1,6 @@
-from schemas.products import *
-from models.products import ProductDB
-from db.database import products_collection
+from backend.api.schemas.products import *
+from backend.api.models.products import ProductDB
+from backend.api.db.database import products_collection
 from bson import ObjectId
 
 async def list_products(skip: int = 0, limit: int = 10):
