@@ -2,6 +2,11 @@ from backend.api.schemas.products import *
 from backend.api.models.products import ProductDB
 from backend.api.db.database import products_collection
 from bson import ObjectId
+from fastapi import UploadFile
+import pandas as pd
+from io import BytesIO
+from pydantic import ValidationError
+from backend.api.ml.categorization import categorize_product_by_description
 
 async def list_products(skip: int = 0, limit: int = 10):
     products = await products_collection.find().skip(skip).limit(limit).to_list(length=limit)
@@ -15,6 +20,8 @@ async def get_product(id: str):
     
 
 async def create_product(product_data: ProductCreate):
+    if product_data.category is None:
+        product_data.category = categorize_product_by_description(product_data.description)
     product_data_db = ProductDB(**product_data.model_dump())
     print(product_data_db.purchase_link.__class__)
     existing_products = await products_collection.count_documents({"purchase_link": product_data_db.purchase_link})
@@ -33,6 +40,10 @@ async def delete_product(id: str):
         await products_collection.delete_one({"_id": ObjectId(id)})
         return product
     return None
+
+async def delete_all_products():
+    await products_collection.delete_many({})
+    return True
 
 async def update_product(id: str, updated_data: ProductUpdate):
     if not ObjectId.is_valid(id):
@@ -55,3 +66,27 @@ async def update_product(id: str, updated_data: ProductUpdate):
             )
         return await get_product(id)
     return None
+
+async def import_products_from_excel(file_bytes: bytes) -> int:
+    df = pd.read_excel(BytesIO(file_bytes))
+    df = df.astype(object).where(pd.notnull(df), None)
+    products = df.to_dict(orient="records")
+    valid_products = []
+
+    for product in products:
+        try:
+            validated = ProductCreate(**product)
+            existing = await products_collection.count_documents({
+                "purchase_link": str(validated.purchase_link)  # 🔁 convertir a string
+            })
+            if existing == 0:
+                valid_products.append(validated.model_dump(mode="json"))  # 🔁 usar modo json (convierte automáticamente HttpUrl a string)
+        except ValidationError as e:
+            continue
+
+    if valid_products:
+        await products_collection.insert_many(valid_products)
+
+    return len(valid_products)
+    
+

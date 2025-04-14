@@ -2,14 +2,13 @@ from pydantic import BaseModel, HttpUrl
 from typing import Optional, Type, TypeVar
 
 
-
 class ProductBase(BaseModel):
     name: str
     description: str
     price: float
     purchase_link: HttpUrl
     image_url: HttpUrl
-    category: str
+    category: Optional[str] = None
 
 class ProductCreate(ProductBase):
     pass

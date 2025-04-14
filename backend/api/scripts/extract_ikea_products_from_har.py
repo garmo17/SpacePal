@@ -5,8 +5,8 @@ import requests
 from backend.api.ml.categorization import categorize_product_by_description
 
 # === CONFIGURACIÓN ===
-input_har = "../data/www.ikea.com.har"
-output_excel = "../output/products.xlsx"
+input_har = "backend/api/data/www.ikea.com.har"
+output_excel = "backend/api/output/products.xlsx"
 base_url = "https://www.ikea.com"
 
 # === CARGAR ARCHIVO HAR ===
@@ -29,7 +29,7 @@ for entry in har_data["log"]["entries"]:
         try:
             content = requests.get(url).text
         except:
-            continue  
+            continue
 
     soup = BeautifulSoup(content, 'html.parser')
 
@@ -42,7 +42,7 @@ for entry in har_data["log"]["entries"]:
 
     # Descripción del producto
     desc_tag = soup.find("span", class_="pip-header-section__description-text")
-    description = desc_tag.get_text(strip=True) if desc_tag else ""
+    description_1 = desc_tag.get_text(strip=True) if desc_tag else ""
 
     # Precio
     price_int = soup.find("span", class_="pip-price__integer")
@@ -63,16 +63,19 @@ for entry in har_data["log"]["entries"]:
         product_soup = BeautifulSoup(product_html, 'html.parser')
         image_tag = product_soup.find("img", class_="pip-image")
         image_url = image_tag["src"] if image_tag else ""
+        extended_descriptions = product_soup.find_all("p", class_="pip-product-details__paragraph")
+        full_description = description_1 + " " + " ".join([desc.get_text(strip=True) for desc in extended_descriptions])
     except:
         image_url = ""
+        full_description = description_1
 
     # Categoría
-    category = categorize_product_by_description(description)
+    category = categorize_product_by_description(full_description)
 
     # Guardar producto
     productos.append({
         "name": name,
-        "description": description,
+        "description": full_description,
         "price": price,
         "purchase_link": purchase_link,
         "image_url": image_url,
@@ -81,7 +84,7 @@ for entry in har_data["log"]["entries"]:
 
     print({
         "name": name,
-        "description": description,
+        "description": full_description,
         "price": price,
         "purchase_link": purchase_link,
         "image_url": image_url,
