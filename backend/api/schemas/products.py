@@ -1,6 +1,18 @@
 from pydantic import BaseModel, HttpUrl
-from typing import Optional, Type, TypeVar
+from datetime import datetime
+from typing import Optional, Type, TypeVar, List
 
+
+class ProductReview(BaseModel):
+    user_id: str
+    rating: float
+    comment: Optional[str] = None
+    timestamp: Optional[datetime] = None
+
+class ProductReviewCreate(BaseModel):
+    user_id: str
+    rating: float
+    comment: Optional[str] = None
 
 class ProductBase(BaseModel):
     name: str
@@ -9,6 +21,11 @@ class ProductBase(BaseModel):
     purchase_link: HttpUrl
     image_url: HttpUrl
     category: Optional[str] = None
+    spaces: Optional[List[str]] = None
+    styles: Optional[List[str]] = None
+    rating: Optional[float] = 0.0
+    review_count: Optional[int] = 0
+    reviews: Optional[List[ProductReview]] = []
 
 class ProductCreate(ProductBase):
     pass
@@ -16,6 +33,9 @@ class ProductCreate(ProductBase):
 
 class ProductRead(ProductBase):
     id: str
+    category: str
+    spaces: List[str]
+    styles: List[str]
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
@@ -24,6 +44,12 @@ class ProductUpdate(BaseModel):
     purchase_link: Optional[HttpUrl] = None
     image_url: Optional[HttpUrl] = None
     category: Optional[str] = None
+    spaces: Optional[List[str]] = None
+    styles: Optional[List[str]] = None
+    rating: Optional[float] = None
+    review_count: Optional[int] = None
+    reviews: Optional[List[ProductReview]] = None
+
 
 T = TypeVar("T", bound=BaseModel)
 
