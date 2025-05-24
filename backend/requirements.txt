@@ -34,8 +34,6 @@ motor
 mpmath
 networkx
 numpy
-nvidia-cuda-cupti-cu12
-nvidia-nccl-cu12
 orjson
 packaging
 pandas
@@ -68,7 +66,6 @@ rich-toolkit
 rsa
 safetensors
 scikit-learn
-scikit-surprise
 scipy
 sentencepiece
 shellingham

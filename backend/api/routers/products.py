@@ -1,7 +1,7 @@
 from fastapi import APIRouter, status, HTTPException, Depends, UploadFile, File
 from backend.api.dependencies.auth import is_admin
 from backend.api.services import products as products_service
-from backend.api.schemas.products import ProductRead, ProductCreate, ProductUpdate
+from backend.api.schemas.products import ProductRead, ProductCreate, ProductUpdate, ProductReviewCreate, ProductReview
 
 
 
@@ -59,3 +59,29 @@ async def import_products(file: UploadFile = File(...)):
         return {"inserted": count}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al procesar el archivo: {str(e)}")
+    
+@router.get("/{id}/recomendations", response_model=List[ProductRead], status_code=status.HTTP_200_OK)
+async def get_product_recommendations(id: str, top_n: int = 5):
+    try:
+        result = await products_service.get_product_recommendations(id, top_n)
+        if result is None:
+            raise HTTPException(status_code=404, detail="Producto no encontrado")
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+@router.get("/{id}/reviews", response_model=list[ProductReview], status_code=status.HTTP_200_OK)
+async def get_product_reviews(id: str):
+    reviews = await products_service.get_product_reviews(id)  
+    if not reviews:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    return reviews
+
+@router.post("/products/{id}/reviews", response_model=ProductReview)
+async def add_product_review(id: str, review: ProductReviewCreate):
+    review = await products_service.add_product_review(id, review)  
+    if not review:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    return review
+    
+    
