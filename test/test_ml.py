@@ -1,28 +1,49 @@
-from unittest.mock import patch
-from backend.api.ml.categorization import categorize_product_by_description
+from backend.api.ml.categorization import categorize_product_by_description, model, category_labels
 
-def test_categorize_product_by_description_with_mocked_spaces_and_styles():
-    description = "Silla de madera para jardín rústico, ideal para terraza exterior"
+def test_categorize_product_by_description_with_more_options():
+    description = "Silla de madera rústica para terraza exterior, ideal para relajarse en el jardín"
 
-    with patch("backend.api.ml.categorization.get_spaces") as mock_spaces, \
-         patch("backend.api.ml.categorization.get_styles") as mock_styles:
+    # Añadimos más espacios de prueba
+    space_names = ["terraza", "jardín", "comedor", "salón", "oficina", "dormitorio"]
+    space_labels = [
+        "terraza: espacio exterior para relajarse",
+        "jardín: zona verde al aire libre",
+        "comedor: lugar para comer con familia y amigos",
+        "salón: zona común para reuniones y descanso",
+        "oficina: espacio para trabajo y productividad",
+        "dormitorio: zona para descansar y dormir"
+    ]
 
-        mock_spaces.return_value = [
-            type("MockSpace", (), {"name": "terraza", "description": "espacio exterior para relajarse"})(),
-            type("MockSpace", (), {"name": "jardín", "description": "zona verde al aire libre"})(),
-        ]
+    # Añadimos más estilos de prueba
+    style_names = ["rústico", "nórdico", "minimalista", "industrial", "bohemio", "clásico"]
+    style_labels = [
+        "rústico: madera, naturaleza y calidez",
+        "nórdico: líneas limpias y tonos claros",
+        "minimalista: simplicidad y orden",
+        "industrial: metal y hormigón con toques urbanos",
+        "bohemio: mezcla de texturas y colores",
+        "clásico: elegancia y tradición"
+    ]
 
-        mock_styles.return_value = [
-            type("MockStyle", (), {"name": "rústico", "description": "madera, naturaleza y calidez"})(),
-            type("MockStyle", (), {"name": "nórdico", "description": "líneas limpias y tonos claros"})(),
-        ]
+    # Calculamos embeddings
+    category_embeddings = model.encode(category_labels, convert_to_tensor=True)
+    space_embeddings = model.encode(space_labels, convert_to_tensor=True)
+    style_embeddings = model.encode(style_labels, convert_to_tensor=True)
 
-        category, spaces, styles = categorize_product_by_description(description)
+    # Llamamos a la función
+    category, spaces, styles = categorize_product_by_description(
+        description,
+        category_embeddings,
+        space_embeddings,
+        style_embeddings,
+        space_names,
+        style_names
+    )
 
-        print("Categoría:", category)
-        print("Espacios:", spaces)
-        print("Estilos:", styles)
+    print("🔎 Categoría:", category)
+    print("📍 Espacios (Top 3):", spaces)
+    print("🎨 Estilos (Top 3):", styles)
 
-        assert isinstance(category, str)
-        assert isinstance(spaces, list) and len(spaces) > 0
-        assert isinstance(styles, list) and len(styles) > 0
+    assert isinstance(category, str)
+    assert isinstance(spaces, list) and len(spaces) == 3
+    assert isinstance(styles, list) and len(styles) == 3

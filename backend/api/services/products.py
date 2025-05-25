@@ -8,6 +8,8 @@ from pydantic import ValidationError
 from backend.api.ml.categorization import categorize_product_by_description
 from backend.api.ml.recomender import recommend_by_cosine_similarity
 from datetime import datetime, timezone
+from typing import List
+from backend.api.services.categorization_service import load_embeddings
 
 async def list_products(skip: int = 0, limit: int = 10):
     products = await products_collection.find().skip(skip).limit(limit).to_list(length=limit)
@@ -20,14 +22,25 @@ async def get_product(id: str):
     return from_mongo(product, ProductRead)
     
 
-async def create_product(product_data: ProductCreate):
-    category, spaces, styles = categorize_product_by_description(product_data.description)
-    if not product_data.category:
-        product_data.category = category
-    if not product_data.spaces:
-        product_data.spaces = spaces
-    if not product_data.styles:
-        product_data.styles = styles
+async def create_product(product_data: ProductCreate, n_spaces: int = 3, n_styles: int = 3):
+    category_embeddings, space_embeddings, style_embeddings, space_names, style_names = await load_embeddings()
+    category, spaces, styles = categorize_product_by_description(product_data.description,
+                                                                category_embeddings,
+                                                                space_embeddings,
+                                                                style_embeddings,
+                                                                space_names,
+                                                                style_names,
+                                                                n_spaces=n_spaces,
+                                                                n_styles=n_styles)
+    product_data.category = category or product_data.category
+    spaces = spaces or product_data.spaces or []
+    styles = styles or product_data.styles or []
+    product_data.spaces = spaces
+    product_data.styles = styles
+
+    product_data.rating = product_data.rating or 0.0
+    product_data.review_count = product_data.review_count or 0
+    product_data.reviews = product_data.reviews or []
 
     product_data_db = ProductDB(**product_data.model_dump())
     existing_products = await products_collection.count_documents({"purchase_link": product_data_db.purchase_link})
@@ -36,6 +49,52 @@ async def create_product(product_data: ProductCreate):
     product_insert_db = await products_collection.insert_one(product_data_db.to_dict())
     document = await products_collection.find_one({"_id": product_insert_db.inserted_id})
     return from_mongo(document, ProductRead)
+
+async def create_products(products_data: List[ProductCreate], n_spaces: int = 3, n_styles: int = 3):
+    category_embeddings, space_embeddings, style_embeddings, space_names, style_names = await load_embeddings()
+    valid_products = []
+    existing_products = []
+
+    for product_data in products_data:           
+        category, spaces, styles = categorize_product_by_description(
+            product_data.description,
+            category_embeddings,
+            space_embeddings,
+            style_embeddings,
+            space_names,
+            style_names,
+            n_spaces=n_spaces,
+            n_styles=n_styles
+        )
+        product_data.category = product_data.category or category
+        product_data.spaces = product_data.spaces or spaces
+        product_data.styles = product_data.styles or styles
+
+        product_data.rating = product_data.rating or 0.0
+        product_data.review_count = product_data.review_count or 0
+        product_data.reviews = product_data.reviews or []
+
+        product_db = ProductDB(**product_data.model_dump())
+
+        existing_doc = await products_collection.find_one({"purchase_link": product_db.purchase_link})
+        if existing_doc:
+            existing_products.append(from_mongo(existing_doc, ProductRead))
+        else:
+            valid_products.append(product_db.to_dict())
+
+    created_products = []
+    if valid_products:
+        result = await products_collection.insert_many(valid_products)
+        inserted_docs = await products_collection.find(
+            {"_id": {"$in": result.inserted_ids}}
+        ).to_list(length=len(result.inserted_ids))
+        created_products = [from_mongo(doc, ProductRead) for doc in inserted_docs]
+
+    return {
+        "created": created_products,
+        "existing": existing_products
+    }
+
 
 
 async def delete_product(id: str):

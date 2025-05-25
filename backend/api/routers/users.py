@@ -5,10 +5,11 @@ from backend.api.models.users import *
 from backend.api.services.auth_service import get_current_user
 from fastapi import Depends
 from backend.api.dependencies.auth import is_admin
+from typing import List
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-@router.get("/", response_model=list[UserRead], status_code=status.HTTP_200_OK)
+@router.get("/", response_model=List[UserRead], status_code=status.HTTP_200_OK)
 async def get_users(skip: int = 0, limit: int = 10, current_user: UserDB = Depends(is_admin)):
     users = await users_service.list_users(skip, limit)  
     if not users:

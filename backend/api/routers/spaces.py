@@ -1,11 +1,13 @@
 from fastapi import APIRouter, status, HTTPException, Depends
 from backend.api.dependencies.auth import is_admin
 from backend.api.services import spaces as spaces_service
-from backend.api.schemas.spaces import SpaceRead, SpaceCreate, SpaceUpdate
+from backend.api.schemas.spaces import *
+from typing import List
+
 
 router = APIRouter(prefix="/spaces", tags=["spaces"])
 
-@router.get("/", response_model=list[SpaceRead], status_code=status.HTTP_200_OK)
+@router.get("/", response_model=List[SpaceRead], status_code=status.HTTP_200_OK)
 async def get_spaces(skip: int = 0, limit: int = 10):
     spaces = await spaces_service.list_spaces(skip, limit)  
     if not spaces:
@@ -25,6 +27,13 @@ async def create_space(space_data: SpaceCreate, current_user: str = Depends(is_a
     if not created_space:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Space already exists")
     return created_space
+
+@router.post("/bulk", response_model=SpacesBulkResponse, status_code=status.HTTP_201_CREATED)
+async def create_spaces(spaces_data: List[SpaceCreate], current_user: str = Depends(is_admin)):
+    results = await spaces_service.create_spaces(spaces_data)  
+    if not results.get("created"):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="All spaces already exist")
+    return results
 
 @router.delete("/{id}", status_code=status.HTTP_200_OK)
 async def delete_space(id: str, current_user: str = Depends(is_admin)):

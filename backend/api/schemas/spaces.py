@@ -1,5 +1,6 @@
 from pydantic import BaseModel, HttpUrl
 from typing import Optional, Type, TypeVar
+from typing import List
 
 class SpaceBase(BaseModel):
     name: str
@@ -11,6 +12,10 @@ class SpaceCreate(SpaceBase):
 
 class SpaceRead(SpaceBase):
     id: str
+
+class SpacesBulkResponse(BaseModel):
+    created: List[SpaceRead]
+    existing: List[SpaceRead]
 
 class SpaceUpdate(BaseModel):
     name: Optional[str] = None

@@ -10,12 +10,12 @@ async def test_get_products_success(async_client):
         ProductRead(
             name="Lamp", description="LED Desk Lamp", price=29.99,
             purchase_link="http://example.com/lamp", image_url="http://example.com/lamp.jpg",
-            category="lighting", id="prod1"
+            category="lighting", id="prod1", spaces=["office"], styles=["modern"], rating=4.5, review_count=10, reviews=[]
         ),
         ProductRead(
             name="Chair", description="Office Chair", price=89.99,
             purchase_link="http://example.com/chair", image_url="http://example.com/chair.jpg",
-            category="furniture", id="prod2"
+            category="furniture", id="prod2", spaces=["office"], styles=["ergonomic"], rating=4.0, review_count=5, reviews=[]
         )
     ]
 
@@ -34,7 +34,12 @@ async def test_create_product_success(async_client, override_is_admin):
         "price": 399.99,
         "purchase_link": "http://example.com/sofa",
         "image_url": "http://example.com/sofa.jpg",
-        "category": "furniture"
+        "category": "furniture",
+        "spaces": ["living room"],
+        "styles": ["modern"],
+        "rating": 4.8,
+        "review_count": 20,
+        "reviews": []
     }
 
     expected_response = ProductRead(**new_product, id="new123")
@@ -54,7 +59,12 @@ async def test_create_product_conflict(async_client, override_is_admin):
         "price": 29.99,
         "purchase_link": "http://example.com/lamp",
         "image_url": "http://example.com/lamp.jpg",
-        "category": "lighting"
+        "category": "lighting",
+        "spaces": ["office"],
+        "styles": ["modern"],
+        "rating": 4.5,
+        "review_count": 10,
+        "reviews": []
     }
 
     with patch("backend.api.services.products.create_product", return_value=None):
@@ -63,13 +73,34 @@ async def test_create_product_conflict(async_client, override_is_admin):
     assert response.status_code == 409
     assert response.json()["detail"] == "Product already exists"
 
+# POST /products/ (without category)
+@pytest.mark.asyncio
+async def test_create_product_without_category(async_client, override_is_admin):
+    new_product = {
+        "name": "Bookshelf",
+        "description": "Wooden bookshelf",
+        "price": 199.99,
+        "purchase_link": "http://example.com/bookshelf",
+        "image_url": "http://example.com/bookshelf.jpg"
+    }
+
+
+
+    expected_response = ProductRead(**new_product, id="new456", category="storage", spaces=["living room"], styles=["rustic"], rating=4.2, review_count=15, reviews=[])
+
+    with patch("backend.api.services.products.create_product", return_value=expected_response):
+        response = await async_client.post("/api/v1/products/", json=new_product)
+
+    assert response.status_code == 201
+    assert response.json() == jsonable_encoder(expected_response)
+
 # GET /products/{id} (success)
 @pytest.mark.asyncio
 async def test_get_product_by_id_success(async_client):
     product = ProductRead(
         name="Shelf", description="Wall-mounted shelf", price=49.99,
         purchase_link="http://example.com/shelf", image_url="http://example.com/shelf.jpg",
-        category="storage", id="prod123"
+        category="storage", id="prod123", spaces=["living room"], styles=["modern"], rating=4.0, review_count=3, reviews=[]
     )
 
     with patch("backend.api.services.products.get_product", return_value=product):
@@ -93,7 +124,7 @@ async def test_update_product_success(async_client, override_is_admin):
     updated_product = ProductRead(
         name="Updated Lamp", description="Updated Desc", price=39.99,
         purchase_link="http://example.com/lamp-updated", image_url="http://example.com/lamp-updated.jpg",
-        category="lighting", id="prod1"
+        category="lighting", id="prod1", spaces=["office"], styles=["modern"], rating=4.5, review_count=10, reviews=[]
     )
 
     with patch("backend.api.services.products.update_product", return_value=updated_product):
@@ -128,3 +159,12 @@ async def test_delete_product_not_found(async_client, override_is_admin):
 
     assert response.status_code == 404
     assert response.json()["detail"] == "Product not found"
+
+# DELETE /products/ (success)
+@pytest.mark.asyncio
+async def test_delete_all_products_success(async_client, override_is_admin):
+    with patch("backend.api.services.products.delete_all_products", return_value=True):
+        response = await async_client.delete("/api/v1/products/")
+
+    assert response.status_code == 200
+    assert response.json() == {"message": "All products deleted successfully"}
