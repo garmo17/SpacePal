@@ -12,6 +12,10 @@ class StyleCreate(StyleBase):
 class StyleRead(StyleBase):
     id: str
 
+class StylesBulkResponse(BaseModel):
+    created: list[StyleRead]
+    existing: list[StyleRead]
+
 class StyleUpdate(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None

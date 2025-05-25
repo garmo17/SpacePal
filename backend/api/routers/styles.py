@@ -1,11 +1,13 @@
 from fastapi import APIRouter, status, HTTPException, Depends
 from backend.api.dependencies.auth import is_admin
 from backend.api.services import styles as styles_service
-from backend.api.schemas.styles import StyleRead, StyleCreate, StyleUpdate
+from backend.api.schemas.styles import *
+from typing import List
+
 
 router = APIRouter(prefix="/styles", tags=["styles"])
 
-@router.get("/", response_model=list[StyleRead], status_code=status.HTTP_200_OK)
+@router.get("/", response_model=List[StyleRead], status_code=status.HTTP_200_OK)
 async def get_styles(skip: int = 0, limit: int = 10):
     styles = await styles_service.list_styles(skip, limit)  
     if not styles:
@@ -25,6 +27,13 @@ async def create_style(style_data: StyleCreate, current_user: str = Depends(is_a
     if not created_style:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Style already exists")
     return created_style
+
+@router.post("/bulk", response_model=StylesBulkResponse, status_code=status.HTTP_201_CREATED)
+async def create_styles(styles_data: List[StyleCreate], current_user: str = Depends(is_admin)):
+    results = await styles_service.create_styles(styles_data)  
+    if not results.get("created"):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="All styles already exist")
+    return results
 
 @router.delete("/{id}", status_code=status.HTTP_200_OK)
 async def delete_style(id: str, current_user: str = Depends(is_admin)):

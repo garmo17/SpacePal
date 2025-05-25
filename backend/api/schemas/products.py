@@ -21,8 +21,8 @@ class ProductBase(BaseModel):
     purchase_link: HttpUrl
     image_url: HttpUrl
     category: Optional[str] = None
-    spaces: Optional[List[str]] = None
-    styles: Optional[List[str]] = None
+    spaces: Optional[List[str]] = []
+    styles: Optional[List[str]] = []
     rating: Optional[float] = 0.0
     review_count: Optional[int] = 0
     reviews: Optional[List[ProductReview]] = []
@@ -33,9 +33,10 @@ class ProductCreate(ProductBase):
 
 class ProductRead(ProductBase):
     id: str
-    category: str
-    spaces: List[str]
-    styles: List[str]
+
+class ProductsBulkResponse(BaseModel):
+    created: List[ProductRead]
+    existing: List[ProductRead]
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
