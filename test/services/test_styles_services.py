@@ -1,10 +1,7 @@
 import pytest
 from unittest.mock import patch, AsyncMock
 from bson import ObjectId
-from backend.api.services.styles import (
-    list_styles, get_style, create_style,
-    update_style, delete_style
-)
+from backend.api.services.styles import *
 from backend.api.schemas.styles import StyleCreate, StyleUpdate, StyleRead
 from unittest.mock import MagicMock
 
@@ -85,6 +82,53 @@ async def test_create_style_success():
     assert result.name == "Industrial"
 
 
+@pytest.mark.asyncio
+async def test_create_styles_bulk_success():
+    styles_data = [
+        StyleCreate(
+            name="Minimalista",
+            description="Estilo sencillo y elegante.",
+            image="http://example.com/minimalista.jpg"
+        ),
+        StyleCreate(
+            name="Industrial",
+            description="Estilo urbano con metales y hormigón.",
+            image="http://example.com/industrial.jpg"
+        )
+    ]
+
+    created_doc = {
+        "_id": ObjectId(),
+        "name": "Minimalista",
+        "description": "Estilo sencillo y elegante.",
+        "image": "http://example.com/minimalista.jpg"
+    }
+    existing_doc = {
+        "_id": ObjectId(),
+        "name": "Industrial",
+        "description": "Estilo urbano con metales y hormigón.",
+        "image": "http://example.com/industrial.jpg"
+    }
+
+    with patch("backend.api.services.styles.styles_collection.find") as mock_find, \
+    patch("backend.api.services.styles.styles_collection.insert_many", AsyncMock(return_value=AsyncMock(inserted_ids=[created_doc["_id"]]))):
+        
+        mock_find.side_effect = [
+            AsyncMock(to_list=AsyncMock(return_value=[existing_doc])),
+            AsyncMock(to_list=AsyncMock(return_value=[created_doc]))
+        ]
+        result = await create_styles(styles_data)
+
+        assert isinstance(result, dict)
+        assert "created" in result
+        assert "existing" in result
+
+        created = result["created"]
+        existing = result["existing"]
+        assert len(created) == 1
+        assert created[0].name == "Minimalista"
+        assert len(existing) == 1
+        assert existing[0].name == "Industrial"
 
 @pytest.mark.asyncio
 async def test_update_style_success():

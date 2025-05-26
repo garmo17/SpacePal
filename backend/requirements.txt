@@ -90,6 +90,5 @@ tzdata
 ujson
 urllib3
 uvicorn
-uvloop
 watchfiles
 websockets

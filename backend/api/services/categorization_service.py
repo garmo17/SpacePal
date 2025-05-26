@@ -4,11 +4,11 @@ from backend.api.ml.categorization import model, category_labels
 
 async def load_embeddings():
     all_spaces = await list_spaces(limit=1000)
-    space_labels = [f"{space.name.lower()}: {space.description.lower()}" for space in all_spaces]
+    space_labels = [f"{space.name.lower()} {space.description.lower()}" for space in all_spaces]
     space_names = [space.name for space in all_spaces]
 
     all_styles = await list_styles(limit=1000)
-    style_labels = [f"{style.name.lower()}: {style.description.lower()}" for style in all_styles]
+    style_labels = [f"{style.name.lower()} {style.description.lower()}" for style in all_styles]
     style_names = [style.name for style in all_styles]
 
     category_embeddings = model.encode(category_labels, convert_to_tensor=True)
