@@ -147,7 +147,7 @@ async def test_create_products_bulk_success(async_client, override_is_admin):
         }
     ]
 
-    with patch("backend.api.routers.products.create_products", return_value={"created": mocked_created, "existing": mocked_existing}):
+    with patch("backend.api.services.products.create_products", return_value={"created": mocked_created, "existing": mocked_existing}):
         response = await async_client.post("/api/v1/products/bulk", json=products_data)
 
     assert response.status_code == 201
