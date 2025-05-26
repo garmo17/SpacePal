@@ -1,5 +1,4 @@
 import pytest
-from httpx import AsyncClient
 from backend.api.schemas.users import UserRead
 from backend.api.models.users import UserDB
 from unittest.mock import patch

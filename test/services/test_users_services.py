@@ -5,7 +5,6 @@ from backend.api.services.users import (
     get_user, create_user, delete_user, update_user, delete_all_users
 )
 from backend.api.schemas.users import UserCreate, UserUpdate, UserRead
-from backend.api.models.users import UserDB
 
 
 @pytest.mark.asyncio
