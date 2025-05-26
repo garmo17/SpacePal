@@ -77,6 +77,48 @@ async def test_create_style_conflict(async_client, override_is_admin):
     assert response.status_code == 409
     assert response.json()["detail"] == "Style already exists"
 
+
+# POST /styles/bulk
+@pytest.mark.asyncio
+async def test_create_styles_bulk_api_with_existing(async_client, override_is_admin):
+    styles_data = [
+        {
+            "name": "Minimalista",
+            "description": "Estilo sencillo y elegante.",
+            "image": "http://example.com/minimalista.jpg"
+        },
+        {
+            "name": "Industrial",
+            "description": "Estilo urbano con metales y hormigón.",
+            "image": "http://example.com/industrial.jpg"
+        }
+    ]
+
+    created_style = StyleRead(
+        name="Minimalista",
+        description="Estilo sencillo y elegante.",
+        image="http://example.com/minimalista.jpg",
+        id="style_minimalista"
+    )
+    existing_style = StyleRead(
+        name="Industrial",
+        description="Estilo urbano con metales y hormigón.",
+        image="http://example.com/industrial.jpg",
+        id="style_industrial"
+    )
+
+    with patch("backend.api.services.styles.create_styles", return_value={
+        "created": [created_style],
+        "existing": [existing_style]
+    }):
+        response = await async_client.post("/api/v1/styles/bulk", json=styles_data)
+
+    assert response.status_code == 201
+    assert response.json() == {
+        "created": [jsonable_encoder(created_style)],
+        "existing": [jsonable_encoder(existing_style)]
+    }
+
 # PUT /styles/{id}
 @pytest.mark.asyncio
 async def test_update_style_success(async_client, override_is_admin):

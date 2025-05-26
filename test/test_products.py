@@ -94,6 +94,71 @@ async def test_create_product_without_category(async_client, override_is_admin):
     assert response.status_code == 201
     assert response.json() == jsonable_encoder(expected_response)
 
+# POST /products/bulk
+@pytest.mark.asyncio
+async def test_create_products_bulk_success(async_client, override_is_admin):
+    products_data = [
+        {
+            "name": "Lámpara de mesa",
+            "description": "Lámpara de mesa moderna con luz cálida.",
+            "price": 49.99,
+            "purchase_link": "http://example.com/lampara",
+            "image_url": "http://example.com/lampara.jpg"
+        },
+        {
+            "name": "Silla de madera",
+            "description": "Silla de madera estilo nórdico.",
+            "price": 89.99,
+            "purchase_link": "http://example.com/silla",
+            "image_url": "http://example.com/silla.jpg"
+        }
+    ]
+
+    mocked_created = [
+        {
+            "id": "prod1",
+            "name": "Lámpara de mesa",
+            "description": "Lámpara de mesa moderna con luz cálida.",
+            "price": 49.99,
+            "purchase_link": "http://example.com/lampara",
+            "image_url": "http://example.com/lampara.jpg",
+            "category": "lighting",
+            "spaces": ["salón"],
+            "styles": ["moderno"],
+            "rating": 0.0,
+            "review_count": 0,
+            "reviews": []
+        }
+    ]
+    mocked_existing = [
+        {
+            "id": "prod2",
+            "name": "Silla de madera",
+            "description": "Silla de madera estilo nórdico.",
+            "price": 89.99,
+            "purchase_link": "http://example.com/silla",
+            "image_url": "http://example.com/silla.jpg",
+            "category": "furniture",
+            "spaces": ["comedor"],
+            "styles": ["nórdico"],
+            "rating": 0.0,
+            "review_count": 0,
+            "reviews": []
+        }
+    ]
+
+    with patch("backend.api.routers.products.create_products", return_value={"created": mocked_created, "existing": mocked_existing}):
+        response = await async_client.post("/api/v1/products/bulk", json=products_data)
+
+    assert response.status_code == 201
+    result = response.json()
+    assert "created" in result
+    assert "existing" in result
+    assert len(result["created"]) == 1
+    assert len(result["existing"]) == 1
+    assert result["created"][0]["name"] == "Lámpara de mesa"
+    assert result["existing"][0]["name"] == "Silla de madera"
+    
 # GET /products/{id} (success)
 @pytest.mark.asyncio
 async def test_get_product_by_id_success(async_client):

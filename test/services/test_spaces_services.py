@@ -1,10 +1,7 @@
 import pytest
 from unittest.mock import patch, AsyncMock
 from bson import ObjectId
-from backend.api.services.spaces import (
-    list_spaces, get_space, create_space,
-    update_space, delete_space
-)
+from backend.api.services.spaces import *
 from backend.api.schemas.spaces import SpaceCreate, SpaceUpdate, SpaceRead
 from unittest.mock import MagicMock
 
@@ -84,6 +81,68 @@ async def test_create_space_success():
 
     assert result.name == "Industrial"
 
+
+@pytest.mark.asyncio
+async def test_create_spaces_bulk_success():
+    # Datos de entrada simulados
+    spaces_data = [
+        SpaceCreate(
+            name="Salón",
+            description="Espacio para reuniones familiares con sofá y TV.",
+            image="http://example.com/salon.jpg"
+        ),
+        SpaceCreate(
+            name="Cocina",
+            description="Espacio funcional con encimeras amplias.",
+            image="http://example.com/cocina.jpg"
+        )
+    ]
+
+    # Uno ya existe, otro será creado
+    existing_doc = {
+        "_id": ObjectId(),
+        "name": "Salón",
+        "description": "Espacio para reuniones familiares con sofá y TV.",
+        "image": "http://example.com/salon.jpg"
+    }
+
+    created_doc = {
+        "_id": ObjectId(),
+        "name": "Cocina",
+        "description": "Espacio funcional con encimeras amplias.",
+        "image": "http://example.com/cocina.jpg"
+    }
+
+
+    with patch("backend.api.services.spaces.spaces_collection.count_documents", AsyncMock(return_value=1)), \
+         patch("backend.api.services.spaces.spaces_collection.find") as mock_find, \
+         patch("backend.api.services.spaces.spaces_collection.insert_many", AsyncMock(return_value=AsyncMock(inserted_ids=[created_doc["_id"]]))):
+        
+        mock_find.side_effect = [
+                AsyncMock(to_list=AsyncMock(return_value=[existing_doc])),
+                AsyncMock(to_list=AsyncMock(return_value=[created_doc]))
+        ]
+
+        result = await create_spaces(spaces_data)
+
+        # Verifica que el resultado es un diccionario con claves 'created' y 'existing'
+        assert isinstance(result, dict)
+        assert "created" in result
+        assert "existing" in result
+
+        # Verifica que hay 1 creado y 1 existente
+        assert len(result["created"]) == 1
+        assert len(result["existing"]) == 1
+
+        # Comprueba los datos creados
+        created = result["created"][0]
+        assert isinstance(created, SpaceRead)
+        assert created.name == created_doc["name"]
+
+        # Comprueba los datos existentes
+        existing = result["existing"][0]
+        assert isinstance(existing, SpaceRead)
+        assert existing.name == existing_doc["name"]
 
 
 @pytest.mark.asyncio

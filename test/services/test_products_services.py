@@ -2,10 +2,7 @@ import pytest
 from unittest.mock import patch, AsyncMock
 from bson import ObjectId
 from backend.api.schemas.products import ProductCreate, ProductUpdate, ProductRead
-from backend.api.services.products import (
-    list_products, get_product, create_product,
-    delete_product, update_product, delete_all_products
-)
+from backend.api.services.products import *
 
 from unittest.mock import MagicMock
 
@@ -123,6 +120,7 @@ async def test_create_product_success():
         assert result.id == str(inserted_id)
 
 
+
 @pytest.mark.asyncio
 async def test_create_product_no_category_space_style():
     data = ProductCreate(
@@ -156,6 +154,91 @@ async def test_create_product_no_category_space_style():
         assert result.category == "desks and desk chairs"
         assert result.spaces == ["office"]
         assert result.styles == ["modern"]
+
+
+@pytest.mark.asyncio
+async def test_create_products_bulk_success():
+    products_data = [
+        ProductCreate(
+            name="Lámpara de pie minimalista",
+            description="Lámpara moderna de metal y pantalla textil, perfecta para iluminar espacios con estilo.",
+            price=99.99,
+            purchase_link="http://example.com/lampara1",
+            image_url="http://example.com/lampara1.jpg"
+        ),
+        ProductCreate(
+            name="Silla ergonómica",
+            description="Silla cómoda y ajustable con diseño ergonómico para largas horas de trabajo.",
+            price=149.99,
+            purchase_link="http://example.com/silla1",
+            image_url="http://example.com/silla1.jpg"
+        )
+    ]
+
+    mocked_embeddings = (
+        [[0.1]*768],
+        [[0.1]*768, [0.1]*768, [0.1]*768],
+        [[0.1]*768, [0.1]*768, [0.1]*768],
+        ["living room", "office", "dining room"],
+        ["rustic", "modern", "minimalist"]
+    )
+
+    # Simulamos que el primer producto existe y el segundo no.
+    existing_doc = {
+        "_id": ObjectId(),
+        "name": "Lámpara de pie minimalista",
+        "description": "Lámpara moderna de metal y pantalla textil, perfecta para iluminar espacios con estilo.",
+        "price": 99.99,
+        "purchase_link": "http://example.com/lampara1",
+        "image_url": "http://example.com/lampara1.jpg",
+        "category": "lighting",
+        "spaces": ["living room", "office"],
+        "styles": ["modern"],
+        "rating": 4.5,
+        "review_count": 10,
+        "reviews": []
+    }
+
+    created_doc = {
+        "_id": ObjectId(),
+        "name": "Silla ergonómica",
+        "description": "Silla cómoda y ajustable con diseño ergonómico para largas horas de trabajo.",
+        "price": 149.99,
+        "purchase_link": "http://example.com/silla1",
+        "image_url": "http://example.com/silla1.jpg",
+        "category": "lighting",
+        "spaces": ["living room", "office"],
+        "styles": ["modern"],
+        "rating": 0.0,
+        "review_count": 0,
+        "reviews": []
+    }
+
+    # Simulamos el comportamiento de find_one para cada producto
+    async def find_one_side_effect(query):
+        if query["purchase_link"] == "http://example.com/lampara1":
+            return existing_doc
+        return None
+
+    with patch("backend.api.services.products.load_embeddings", AsyncMock(return_value=mocked_embeddings)), \
+         patch("backend.api.services.products.products_collection.find_one", side_effect=find_one_side_effect), \
+         patch("backend.api.services.products.products_collection.insert_many", AsyncMock(return_value=AsyncMock(inserted_ids=[created_doc["_id"]]))), \
+         patch("backend.api.services.products.products_collection.find", return_value=AsyncMock(to_list=AsyncMock(return_value=[created_doc]))):
+
+        result = await create_products(products_data)
+
+        assert isinstance(result, dict)
+        assert len(result["created"]) == 1
+        assert len(result["existing"]) == 1
+
+        created = result["created"][0]
+        existing = result["existing"][0]
+
+        assert created.name == "Silla ergonómica"
+        assert str(created.purchase_link) == "http://example.com/silla1"
+        assert existing.name == "Lámpara de pie minimalista"
+        assert str(existing.purchase_link) == "http://example.com/lampara1"
+
 
 
 @pytest.mark.asyncio
