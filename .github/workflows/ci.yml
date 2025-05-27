@@ -21,6 +21,8 @@ jobs:
       DB_NAME: "test_database"
       ALGORITHM: "HS256"
       ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+
 
     steps:
       - name: Checkout code
