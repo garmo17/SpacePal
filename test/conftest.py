@@ -31,16 +31,3 @@ async def override_get_current_user():
     app.dependency_overrides[get_current_user] = lambda: fake_user
     yield
     app.dependency_overrides.clear()
-
-@pytest_asyncio.fixture
-@pytest_asyncio.fixture(autouse=True)
-def mock_database_collections(monkeypatch):
-    mock_collection = AsyncMock()
-    monkeypatch.setattr(database, "products_collection", mock_collection)
-    monkeypatch.setattr(database, "user_history_collection", mock_collection)
-    monkeypatch.setattr(database, "users_collection", mock_collection)
-    monkeypatch.setattr(database, "spaces_collection", mock_collection)
-    monkeypatch.setattr(database, "styles_collection", mock_collection)
-
-
-    yield
