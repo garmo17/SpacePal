@@ -14,7 +14,11 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest       
+    runs-on: ubuntu-latest      
+
+    env:
+      MONGO_URI: "mongodb://localhost:27017"
+      DB_NAME: "test_database"
 
     steps:
       - name: Checkout code
@@ -23,7 +27,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'  # La versión de Python que uses
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
