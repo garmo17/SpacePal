@@ -10,5 +10,5 @@ users_collection = database.get_collection("users")
 products_collection = database.get_collection("products")
 spaces_collection = database.get_collection("spaces")
 styles_collection = database.get_collection("styles")
-
+user_history_collection = database.get_collection("user_history")
 

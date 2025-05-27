@@ -113,7 +113,7 @@ async def test_create_spaces_bulk_api_with_existing(async_client, override_is_ad
         }
     ]
 
-    with patch("backend.api.routers.spaces.create_spaces", new=AsyncMock(return_value={"created": mocked_created, "existing": mocked_existing})):
+    with patch("backend.api.services.spaces.create_spaces", new=AsyncMock(return_value={"created": mocked_created, "existing": mocked_existing})):
         response = await async_client.post("/api/v1/spaces/bulk", json=spaces_data)
 
     assert response.status_code == 201

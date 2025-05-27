@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock
 from backend.api.dependencies.auth import is_admin
 from backend.api.services.auth_service import get_current_user
 from backend.api.models.users import UserDB
+from backend.api.db import database
 
 @pytest_asyncio.fixture
 async def async_client():

@@ -3,18 +3,24 @@ from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Dict, Tuple
 from backend.api.schemas.products import ProductRead
 
-def vectorize_texts(products: List[Dict]) -> Tuple:
+def vectorize_products(products: List[Dict]) -> Tuple:
     corpus = [
         f"{p['name']} {p['description']} {p['category']}".lower()
         for p in products
     ]
-    vectorizer = TfidfVectorizer(stop_words="spanish")
+    vectorizer = TfidfVectorizer(stop_words="english")
     tfidf_matrix = vectorizer.fit_transform(corpus)
     return tfidf_matrix, vectorizer
 
+def vectorize_texts(texts: List[str]) -> Tuple:
+    vectorizer = TfidfVectorizer(stop_words="english")
+    tfidf_matrix = vectorizer.fit_transform(texts)
+    return tfidf_matrix, vectorizer
+
+
 def recommend_by_cosine_similarity(product_id: str, products: List[ProductRead], top_n: int = 5) -> List[ProductRead]:
-    tfidf_matrix, _ = vectorize_texts([p.dict() for p in products])
-    index_map = {str(p.id): idx for idx, p in enumerate(products)}  # Asegura que id sea str
+    tfidf_matrix, _ = vectorize_texts([p.model_dump() for p in products])
+    index_map = {str(p.id): idx for idx, p in enumerate(products)}
 
     if product_id not in index_map:
         raise ValueError(f"Product ID {product_id} not found in the product list.")

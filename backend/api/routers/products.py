@@ -63,8 +63,12 @@ async def import_products(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Solo se aceptan archivos .xlsx")
     try:
         contents = await file.read()
-        count = await products_service.import_products_from_excel(contents)
-        return {"inserted": count}
+        result = await products_service.import_products_from_excel(contents)
+        return {
+            "inserted": result["inserted"],
+            "skipped": result["skipped"],
+            "total": result["total"]
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al procesar el archivo: {str(e)}")
     

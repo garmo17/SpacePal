@@ -10,6 +10,7 @@ from backend.api.ml.recomender import recommend_by_cosine_similarity
 from datetime import datetime, timezone
 from typing import List
 from backend.api.services.categorization_service import load_embeddings
+import ast
 
 async def list_products(skip: int = 0, limit: int = 10):
     products = await products_collection.find().skip(skip).limit(limit).to_list(length=limit)
@@ -132,27 +133,44 @@ async def update_product(id: str, updated_data: ProductUpdate):
         return await get_product(id)
     return None
 
-async def import_products_from_excel(file_bytes: bytes) -> int:
+async def import_products_from_excel(file_bytes: bytes) -> dict:
     df = pd.read_excel(BytesIO(file_bytes))
     df = df.astype(object).where(pd.notnull(df), None)
     products = df.to_dict(orient="records")
     valid_products = []
 
+    total_rows = len(products)
+    skipped_count = 0
+
     for product in products:
+        for key in ["spaces", "styles", "reviews"]:
+            if isinstance(product.get(key), str):
+                try:
+                    product[key] = ast.literal_eval(product[key])
+                except (ValueError, SyntaxError):
+                    product[key] = []  
         try:
             validated = ProductCreate(**product)
             existing = await products_collection.count_documents({
-                "purchase_link": str(validated.purchase_link)  # 🔁 convertir a string
+                "purchase_link": str(validated.purchase_link)
             })
             if existing == 0:
-                valid_products.append(validated.model_dump(mode="json"))  # 🔁 usar modo json (convierte automáticamente HttpUrl a string)
+                valid_products.append(validated.model_dump(mode="json"))
+            else:
+                skipped_count += 1  # Ya existía
+                print(f"Product {product.get('name', 'unknown')} already exists, skipping.")
         except ValidationError as e:
-            continue
+            skipped_count += 1  # No válido
+            print(f"Validation error for product {product.get('name', 'unknown')}: {e}")
 
     if valid_products:
         await products_collection.insert_many(valid_products)
 
-    return len(valid_products)
+    return {
+        "inserted": len(valid_products),
+        "skipped": skipped_count,
+        "total": total_rows
+    }
 
 async def get_product_recommendations(id: str, number: int = 5) -> List[ProductRead] | None:
     if not ObjectId.is_valid(id):
@@ -180,7 +198,7 @@ async def add_product_review(product_id: str, review: ProductReviewCreate) -> Pr
     if not product:
         return None
 
-    new_review = review.dict()
+    new_review = review.model_dump(exclude_unset=True)
     new_review["timestamp"] = datetime.now(timezone.utc)
 
     updated_reviews = product.reviews or []
@@ -197,3 +215,11 @@ async def add_product_review(product_id: str, review: ProductReviewCreate) -> Pr
 
     await update_product(product_id, update_data)
     return ProductReview(**new_review)
+
+async def get_products_by_space_and_style(space: str, style: str, limit: int = 1000):
+    products = await products_collection.find({
+        "spaces": space,
+        "styles": style
+    }).to_list(length=limit)
+    return products
+
