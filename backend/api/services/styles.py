@@ -1,6 +1,6 @@
 from backend.api.schemas.styles import *
 from backend.api.models.styles import StyleDB
-from backend.api.db.database import styles_collection
+from backend.api.db.database import styles_collection, products_collection
 from bson import ObjectId
 from typing import List
 
@@ -54,6 +54,12 @@ async def delete_style(id: str):
     style = await get_style(id)
     if style:
         await styles_collection.delete_one({"_id": ObjectId(id)})
+
+        await products_collection.update_many(
+            {},
+            {"$pull": {"styles": id}}
+        )
+
         return style
     return None
 

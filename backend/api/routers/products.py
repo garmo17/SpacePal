@@ -25,15 +25,17 @@ async def get_product(id: str):
 @router.post("/", response_model=ProductRead, status_code=status.HTTP_201_CREATED)
 async def create_product(product_data: ProductCreate, current_user: str = Depends(is_admin), n_spaces: int = 3, n_styles: int = 3):
     created_product = await products_service.create_product(product_data, n_spaces=n_spaces, n_styles=n_styles)  
+    if isinstance(created_product, dict) and "error" in created_product:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=created_product["error"])
     if not created_product:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Product already exists")
     return created_product
 
 @router.post("/bulk", response_model=ProductsBulkResponse, status_code=status.HTTP_201_CREATED)
 async def create_products(products_data: List[ProductCreate], current_user: str = Depends(is_admin), n_spaces: int = 3, n_styles: int = 3):
-    results = await products_service.create_products(products_data, n_spaces=n_spaces, n_styles=n_styles)  
+    results = await products_service.create_products(products_data, n_spaces=n_spaces, n_styles=n_styles)
     if not results.get("created"):
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="All products already exist")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="All products already exist, or category not aplicable")
     return results
 
 @router.delete("/{id}", status_code=status.HTTP_200_OK)
@@ -53,6 +55,8 @@ async def delete_all_products(current_user: str = Depends(is_admin)):
 @router.put("/{id}", response_model=ProductRead, status_code=status.HTTP_200_OK)
 async def update_product(id: str, product_data: ProductUpdate, current_user: str = Depends(is_admin)):
     updated_product = await products_service.update_product(id, product_data)  
+    if isinstance(updated_product, dict) and "error" in updated_product:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=updated_product["error"])
     if not updated_product:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
     return updated_product

@@ -19,6 +19,8 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import axios from "@/lib/axios";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 // 1️⃣ Esquema de validación con zod
 const formSchema = z.object({
@@ -29,6 +31,10 @@ const formSchema = z.object({
 
 export default function RegisterPage() {
   const [success, setSuccess] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+
+  const { login } = useAuth();
+  const router = useRouter();
 
   // 2️⃣ Configura react-hook-form con zod
   const form = useForm<z.infer<typeof formSchema>>({
@@ -44,11 +50,32 @@ export default function RegisterPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       await axios.post("/users/", values);
+
+      const formData = new URLSearchParams();
+      formData.append("username", values.username);
+      formData.append("password", values.password);
+
+      const response = await axios.post("/auth/token", formData, {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      });
+
+      const meResponse = await axios.get("/users/me", {
+        headers: { Authorization: `Bearer ${response.data.access_token}` },
+      });
+
+      login(response.data.access_token, values.username, meResponse.data.id);
+
       setSuccess("¡Usuario registrado con éxito!");
-      form.reset(); // Limpia los campos
+      setMessageType("success");
+      form.reset();
+
+      setTimeout(() => {
+        router.push("/");
+      }, 1000);
     } catch (err: any) {
       console.error(err);
-      setSuccess("Error al crear usuario");
+      setSuccess("Error al crear usuario, el nombre de usuario o correo ya están en uso.");
+      setMessageType("error");
     }
   }
 
@@ -126,7 +153,11 @@ export default function RegisterPage() {
                   Registrarse
                 </Button>
 
-                {success && <p className="text-green-600">{success}</p>}
+                {success && (
+                  <p className={messageType === "success" ? "text-green-600" : "text-red-600"}>
+                    {success}
+                  </p>
+                )}
               </form>
             </Form>
           </CardContent>

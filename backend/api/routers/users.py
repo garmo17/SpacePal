@@ -59,3 +59,33 @@ async def update_user(id: str, user_data: UserUpdate, current_user: UserDB = Dep
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return updated_user
 
+@router.get("/me/likes", response_model=List[ProductIdPayload], status_code=status.HTTP_200_OK)
+async def get_liked_products(current_user: UserDB = Depends(get_current_user)):
+    liked_products = await users_service.get_liked_products(str(current_user._id))
+    if liked_products is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    return [{"product_id": p} for p in liked_products]
+
+@router.post("/me/likes", status_code=status.HTTP_200_OK)
+async def add_liked_product(payload: ProductIdPayload, current_user: UserDB = Depends(get_current_user)):
+    product_id = payload.product_id
+    if not product_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Product ID is required")
+    result = await users_service.add_liked_product(str(current_user._id), product_id)
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not result:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El producto ya está en favoritos")
+    return {"message": "Producto añadido a favoritos"}
+
+@router.delete("/me/likes/{product_id}", status_code=status.HTTP_200_OK)
+async def remove_liked_product(product_id: str, current_user: UserDB = Depends(get_current_user)):
+    if not product_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Product ID is required")
+    result = await users_service.remove_liked_product(str(current_user._id), product_id)
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not result:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El producto no está en favoritos")
+    return {"message": "Producto eliminado de favoritos"}
