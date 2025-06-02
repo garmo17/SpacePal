@@ -27,7 +27,7 @@ async def override_get_current_user():
         email="mock@example.com",
         password="hashed",
         _id="user123",
-        liked_products=[]
+        cart_products=[]
     )
     app.dependency_overrides[get_current_user] = lambda: fake_user
     yield

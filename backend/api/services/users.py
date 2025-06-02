@@ -68,39 +68,83 @@ async def update_user(id: str, updated_data: UserUpdate):
     return None
 
 
-async def get_liked_products(user_id: str):
+async def get_cart_products(user_id: str):
     if not ObjectId.is_valid(user_id):
         return None
     user = await users_collection.find_one({"_id": ObjectId(user_id)})
     if user:
-        return user.get("liked_products", [])
+        return user.get("cart_products", [])
     return None
 
-async def add_liked_product(user_id: str, product_id: str):
+async def add_cart_product(user_id: str, product_id: str, quantity: int = 1):
     if not ObjectId.is_valid(user_id):
         return None
 
     product = await products_service.get_product(product_id)
     if not product:
-        return False 
+        return False
 
-    result = await users_collection.update_one(
-        {"_id": ObjectId(user_id)},
-        {"$addToSet": {"liked_products": product_id}}
-    )
-    return result.modified_count > 0
-
-async def remove_liked_product(user_id: str, product_id: str):
-    if not ObjectId.is_valid(user_id):
-        return None
     user = await users_collection.find_one({"_id": ObjectId(user_id)})
     if not user:
         return None
 
+    cart = user.get("cart_products", [])
+    for item in cart:
+        if item["product_id"] == product_id:
+            item["quantity"] += quantity
+            break
+    else:
+        cart.append({"product_id": product_id, "quantity": quantity})
+
+    await users_collection.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"cart_products": cart}}
+    )
+    return True
+
+
+async def remove_cart_product(user_id: str, product_id: str):
+    if not ObjectId.is_valid(user_id):
+        return None
+
     result = await users_collection.update_one(
         {"_id": ObjectId(user_id)},
-        {"$pull": {"liked_products": product_id}}
+        {"$pull": {"cart_products": {"product_id": product_id}}}
     )
     return result.modified_count > 0
+
+async def update_product_quantity(user_id: str, product_id: str, new_quantity: int):
+    if not ObjectId.is_valid(user_id):
+        return None
+
+    user = await users_collection.find_one({"_id": ObjectId(user_id)})
+    if not user:
+        return None
+
+    updated = False
+    cart = user.get("cart_products", [])
+    for item in cart:
+        if item["product_id"] == product_id:
+            item["quantity"] = int(new_quantity)
+            updated = True
+            break
+
+    if not updated:
+        return False
+
+    await users_collection.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"cart_products": cart}}
+    )
+    return True
+
+async def clear_cart(user_id: str):
+    if not ObjectId.is_valid(user_id):
+        return None
+    await users_collection.update_one(
+        {"_id": ObjectId(user_id)},
+        {"$set": {"cart_products": []}}
+    )
+    return True
 
 
