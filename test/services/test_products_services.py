@@ -83,7 +83,9 @@ async def test_create_product_conflict():
 
 
     with patch("backend.api.db.database.products_collection.count_documents", AsyncMock(return_value=1)), \
-         patch("backend.api.services.products.load_embeddings", AsyncMock(return_value = mocked_embeddings)):
+         patch("backend.api.services.products.load_embeddings", AsyncMock(return_value = mocked_embeddings)), \
+         patch("backend.api.ml.categorization.spaces_collection.find_one", AsyncMock(return_value={"_id": ObjectId()})), \
+         patch("backend.api.ml.categorization.styles_collection.find_one", AsyncMock(return_value={"_id": ObjectId()})):
         result = await create_product(data)
         assert result is None
 
