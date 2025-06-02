@@ -1,16 +1,17 @@
 from backend.api.schemas.products import *
 from backend.api.models.products import ProductDB
-from backend.api.db.database import products_collection
+from backend.api.db.database import products_collection, users_collection
 from bson import ObjectId
 import pandas as pd
 from io import BytesIO
 from pydantic import ValidationError
-from backend.api.ml.categorization import categorize_product_by_description
+from backend.api.ml.categorization import categorize_product_by_description, category_labels
 from backend.api.ml.recomender import recommend_by_cosine_similarity
 from datetime import datetime, timezone
 from typing import List
 from backend.api.services.categorization_service import load_embeddings
 import ast
+from backend.api.db.database import spaces_collection, styles_collection
 
 async def list_products(skip: int = 0, limit: int = 10):
     products = await products_collection.find().skip(skip).limit(limit).to_list(length=limit)
@@ -21,23 +22,35 @@ async def get_product(id: str):
         return None
     product = await products_collection.find_one({"_id": ObjectId(id)})
     return from_mongo(product, ProductRead)
-    
+
 
 async def create_product(product_data: ProductCreate, n_spaces: int = 3, n_styles: int = 3):
+    if product_data.category and product_data.category not in category_labels:
+        return {"error": f"Categoría '{product_data.category}' no es válida. Debe ser una de: {category_labels}"}
+    
     category_embeddings, space_embeddings, style_embeddings, space_names, style_names = await load_embeddings()
-    category, spaces, styles = categorize_product_by_description(product_data.description,
-                                                                category_embeddings,
-                                                                space_embeddings,
-                                                                style_embeddings,
-                                                                space_names,
-                                                                style_names,
-                                                                n_spaces=n_spaces,
-                                                                n_styles=n_styles)
+    category, spaces, styles = await categorize_product_by_description(
+        product_data.description,
+        category_embeddings,
+        space_embeddings,
+        style_embeddings,
+        space_names,
+        style_names,
+        n_spaces=n_spaces,
+        n_styles=n_styles
+    )
+
     product_data.category = category or product_data.category
-    spaces = spaces or product_data.spaces or []
-    styles = styles or product_data.styles or []
-    product_data.spaces = spaces
-    product_data.styles = styles
+
+    if product_data.spaces:
+        product_data.spaces = await validate_and_filter_existing_ids(product_data.spaces, spaces_collection)
+    else:
+        product_data.spaces = spaces or []
+
+    if product_data.styles:
+        product_data.styles = await validate_and_filter_existing_ids(product_data.styles, styles_collection)
+    else:
+        product_data.styles = styles or []
 
     product_data.rating = product_data.rating or 0.0
     product_data.review_count = product_data.review_count or 0
@@ -51,13 +64,20 @@ async def create_product(product_data: ProductCreate, n_spaces: int = 3, n_style
     document = await products_collection.find_one({"_id": product_insert_db.inserted_id})
     return from_mongo(document, ProductRead)
 
+
 async def create_products(products_data: List[ProductCreate], n_spaces: int = 3, n_styles: int = 3):
     category_embeddings, space_embeddings, style_embeddings, space_names, style_names = await load_embeddings()
     valid_products = []
     existing_products = []
+    skipped_count = 0
 
-    for product_data in products_data:           
-        category, spaces, styles = categorize_product_by_description(
+    for product_data in products_data:
+        if product_data.category and product_data.category not in category_labels:
+            skipped_count += 1
+            print(f"Producto '{product_data.name}' tiene categoría inválida '{product_data.category}'. Saltando...")
+            continue
+
+        category, spaces, styles = await categorize_product_by_description(
             product_data.description,
             category_embeddings,
             space_embeddings,
@@ -68,15 +88,22 @@ async def create_products(products_data: List[ProductCreate], n_spaces: int = 3,
             n_styles=n_styles
         )
         product_data.category = product_data.category or category
-        product_data.spaces = product_data.spaces or spaces
-        product_data.styles = product_data.styles or styles
+
+        if product_data.spaces:
+            product_data.spaces = await validate_and_filter_existing_ids(product_data.spaces, spaces_collection)
+        else:
+            product_data.spaces = spaces or []
+
+        if product_data.styles:
+            product_data.styles = await validate_and_filter_existing_ids(product_data.styles, styles_collection)
+        else:
+            product_data.styles = styles or []
 
         product_data.rating = product_data.rating or 0.0
         product_data.review_count = product_data.review_count or 0
         product_data.reviews = product_data.reviews or []
 
         product_db = ProductDB(**product_data.model_dump())
-
         existing_doc = await products_collection.find_one({"purchase_link": product_db.purchase_link})
         if existing_doc:
             existing_products.append(from_mongo(existing_doc, ProductRead))
@@ -86,14 +113,13 @@ async def create_products(products_data: List[ProductCreate], n_spaces: int = 3,
     created_products = []
     if valid_products:
         result = await products_collection.insert_many(valid_products)
-        inserted_docs = await products_collection.find(
-            {"_id": {"$in": result.inserted_ids}}
-        ).to_list(length=len(result.inserted_ids))
+        inserted_docs = await products_collection.find({"_id": {"$in": result.inserted_ids}}).to_list(length=len(result.inserted_ids))
         created_products = [from_mongo(doc, ProductRead) for doc in inserted_docs]
 
     return {
         "created": created_products,
-        "existing": existing_products
+        "existing": existing_products,
+        "skipped": skipped_count,
     }
 
 
@@ -101,9 +127,16 @@ async def create_products(products_data: List[ProductCreate], n_spaces: int = 3,
 async def delete_product(id: str):
     if not ObjectId.is_valid(id):
         return None
+
     product = await get_product(id)
     if product:
         await products_collection.delete_one({"_id": ObjectId(id)})
+
+        await users_collection.update_many(
+            {},
+            {"$pull": {"liked_products": id}}
+        )
+
         return product
     return None
 
@@ -116,8 +149,15 @@ async def update_product(id: str, updated_data: ProductUpdate):
         return None
     product = await get_product(id)
     if product:
-        
         update_dict = updated_data.model_dump(exclude_unset=True)
+
+        if "category" in update_dict and update_dict["category"] not in category_labels:
+            return {"error": f"Categoría '{update_dict['category']}' no es válida. Debe ser una de: {category_labels}"}
+
+        if "spaces" in update_dict:
+            update_dict["spaces"] = await validate_and_filter_existing_ids(update_dict["spaces"], spaces_collection)
+        if "styles" in update_dict:
+            update_dict["styles"] = await validate_and_filter_existing_ids(update_dict["styles"], styles_collection)
 
         def convert_value(value):
             if isinstance(value, HttpUrl):
@@ -125,13 +165,14 @@ async def update_product(id: str, updated_data: ProductUpdate):
             return value
 
         update_dict = {key: convert_value(value) for key, value in update_dict.items()}
-        
+
         await products_collection.update_one(
-            {"_id": ObjectId(id)}, 
+            {"_id": ObjectId(id)},
             {"$set": update_dict}
-            )
+        )
         return await get_product(id)
     return None
+
 
 async def import_products_from_excel(file_bytes: bytes) -> dict:
     df = pd.read_excel(BytesIO(file_bytes))
@@ -222,4 +263,16 @@ async def get_products_by_space_and_style(space: str, style: str, limit: int = 1
         "styles": style
     }).to_list(length=limit)
     return products
+
+
+async def validate_and_filter_existing_ids(ids: List[str], collection) -> List[str]:
+    valid_ids = []
+    for _id in ids:
+        if ObjectId.is_valid(_id):
+            obj_id = ObjectId(_id)
+            exists = await collection.find_one({"_id": obj_id})
+            if exists:
+                valid_ids.append(str(obj_id))
+    return valid_ids
+
 

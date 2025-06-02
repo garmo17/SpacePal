@@ -1,6 +1,7 @@
 from backend.api.ml.categorization import categorize_product_by_description, model, category_labels
+from backend.api.db.database import products_collection
 
-def test_categorize_product_by_description_with_more_options():
+async def test_categorize_product_by_description_with_more_options():
     description = "Silla de madera rústica para terraza exterior, ideal para relajarse en el jardín"
 
     # Añadimos más espacios de prueba
@@ -31,7 +32,7 @@ def test_categorize_product_by_description_with_more_options():
     style_embeddings = model.encode(style_labels, convert_to_tensor=True)
 
     # Llamamos a la función
-    category, spaces, styles = categorize_product_by_description(
+    category, spaces, styles = await categorize_product_by_description(
         description,
         category_embeddings,
         space_embeddings,
@@ -39,6 +40,7 @@ def test_categorize_product_by_description_with_more_options():
         space_names,
         style_names
     )
+
 
     print("🔎 Categoría:", category)
     print("📍 Espacios (Top 3):", spaces)

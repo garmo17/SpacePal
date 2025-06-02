@@ -1,6 +1,6 @@
 from backend.api.schemas.spaces import *
 from backend.api.models.spaces import SpaceDB
-from backend.api.db.database import spaces_collection
+from backend.api.db.database import spaces_collection, products_collection
 from bson import ObjectId
 from typing import List
 
@@ -55,6 +55,12 @@ async def delete_space(id: str):
     space = await get_space(id)
     if space:
         await spaces_collection.delete_one({"_id": ObjectId(id)})
+
+        await products_collection.update_many(
+            {},
+            {"$pull": {"spaces": id}}
+        )
+
         return space
     return None
 

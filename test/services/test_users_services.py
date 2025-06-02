@@ -53,7 +53,8 @@ async def test_update_user_success():
     updated_user = UserRead(username="test", email="updated@example.com", id=user_id)
 
     with patch("backend.api.services.users.get_user", side_effect=[original_user, updated_user]), \
-         patch("backend.api.db.database.users_collection.update_one", new=AsyncMock()):
+         patch("backend.api.db.database.users_collection.update_one", new=AsyncMock()), \
+         patch("backend.api.services.users.users_collection.count_documents", new=AsyncMock(return_value=0)):
         result = await update_user(user_id, updated_data)
         assert result.email == "updated@example.com"
 

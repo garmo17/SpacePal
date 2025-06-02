@@ -1,68 +1,154 @@
-// src/app/login/page.tsx
+"use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { useState } from "react";
+import axios from "@/lib/axios";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+
+// Esquema de validación con zod
+const loginSchema = z.object({
+  username: z.string().min(3, { message: "El nombre de usuario es requerido" }),
+  password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
+});
 
 export default function LoginPage() {
+  const [success, setSuccess] = useState("");
+  const { login } = useAuth();
+  const router = useRouter();
+  const form = useForm<z.infer<typeof loginSchema>>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      username: "",
+      password: "",
+    },
+  });
+
+const onSubmit = async (values: z.infer<typeof loginSchema>) => {
+  try {
+    const formData = new URLSearchParams();
+    formData.append("username", values.username);
+    formData.append("password", values.password);
+
+    // 1️⃣ Autentica y consigue el token
+    const response = await axios.post("/auth/token", formData, {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    });
+
+    const accessToken = response.data.access_token;
+
+    // 2️⃣ Consigue los datos reales del usuario
+    const meResponse = await axios.get("/users/me", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const { username, id } = meResponse.data;
+
+    // 3️⃣ Llama a login del AuthContext
+    login(accessToken, username, id);
+
+    setSuccess("¡Inicio de sesión exitoso!");
+    form.reset();
+
+    // 4️⃣ Redirige al home o donde quieras
+    setTimeout(() => {
+      router.push("/");
+    }, 1000);
+  } catch (err: any) {
+    console.error(err);
+    setSuccess("Error al iniciar sesión: usuario o contraseña incorrectos");
+  }
+};
+
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Barra superior con logo, iconos y botón de registro */}
       <Header>
         <Button asChild className="bg-camel text-black border border-white hover:bg-white hover:[color:var(--camel)] transition-colors">
-            <Link href="/register">
-                Registrarse
-            </Link>
+          <Link href="/register">Registrarse</Link>
         </Button>
       </Header>
 
-      {/* Contenido principal */}
       <main className="flex flex-1 flex-col items-center justify-center p-8 gap-6">
-        {/* Logo arriba del Card */}
         <img src="/Logo2.png" alt="Logo SpacePal" className="h-24" />
 
         <Card className="w-full max-w-md shadow-lg">
           <CardHeader>
-            <CardTitle className="text-center text-2xl font-bold">
-              Iniciar Sesión en SpacePal
-            </CardTitle>
+            <CardTitle className="text-center text-2xl font-bold">Iniciar Sesión en SpacePal</CardTitle>
           </CardHeader>
+
           <CardContent className="flex flex-col gap-6">
-            <form className="flex flex-col gap-6 w-full">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="email" className="font-semibold">
-                  Correo electrónico
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Introduce tu correo"
-                  className="focus-visible:ring-camel"
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6 w-full">
+                <FormField
+                  control={form.control}
+                  name="username"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre de usuario</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Introduce tu nombre de usuario"
+                          {...field}
+                          className="focus-visible:ring-camel"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="password" className="font-semibold">
-                  Contraseña
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Introduce tu contraseña"
-                  className="focus-visible:ring-camel"
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Contraseña</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="Introduce tu contraseña"
+                          {...field}
+                          className="focus-visible:ring-camel"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
-              </div>
 
-              <Button
-                type="submit"
-                className="bg-camel text-black border-2 border-black hover:bg-white hover:[color:var(--camel)] font-bold py-2 px-6 rounded transition-colors"
-              >
-                Iniciar sesión
-              </Button>
-            </form>
+                <Button
+                  type="submit"
+                  className="bg-camel text-black border-2 border-black hover:bg-white hover:[color:var(--camel)] font-bold py-2 px-6 rounded transition-colors"
+                >
+                  Iniciar sesión
+                </Button>
+
+                {success && (
+                  <div
+                    className={`text-center font-semibold ${
+                      success.includes("exitoso") ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {success}
+                  </div>
+                )}
+              </form>
+            </Form>
           </CardContent>
         </Card>
       </main>

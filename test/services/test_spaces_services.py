@@ -167,7 +167,8 @@ async def test_delete_space_success():
     fake_space = SpaceRead(id=space_id, name="Modern", description="Desc", image="http://example.com/image.jpg")
 
     with patch("backend.api.services.spaces.get_space", return_value=fake_space), \
-         patch("backend.api.db.database.spaces_collection.delete_one", new_callable=AsyncMock):
+         patch("backend.api.db.database.spaces_collection.delete_one", new_callable=AsyncMock), \
+         patch("backend.api.services.spaces.products_collection.update_many", new_callable=AsyncMock):
 
         result = await delete_space(space_id)
 

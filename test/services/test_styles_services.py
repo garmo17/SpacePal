@@ -24,7 +24,8 @@ async def test_list_styles_returns_list():
     mock_find_chain = MagicMock()
     mock_find_chain.skip.return_value = mock_skip
 
-    with patch("backend.api.db.database.styles_collection.find", return_value=mock_find_chain):
+    with patch("backend.api.db.database.styles_collection.find", return_value=mock_find_chain), \
+         patch("backend.api.services.spaces.products_collection.update_many", new_callable=AsyncMock):
         result = await list_styles()
 
     assert isinstance(result, list)
@@ -42,7 +43,8 @@ async def test_get_style_success():
         "image": "http://example.com/boho.jpg"
     }
 
-    with patch("backend.api.db.database.styles_collection.find_one", new_callable=AsyncMock, return_value=mock_doc):
+    with patch("backend.api.db.database.styles_collection.find_one", new_callable=AsyncMock, return_value=mock_doc),  \
+         patch("backend.api.services.spaces.products_collection.update_many", new_callable=AsyncMock):
         result = await get_style(str(style_id))
         assert result.name == "Boho"
 
@@ -152,7 +154,8 @@ async def test_delete_style_success():
     fake_style = StyleRead(id=style_id, name="Modern", description="Desc", image="http://example.com/image.jpg")
 
     with patch("backend.api.services.styles.get_style", return_value=fake_style), \
-         patch("backend.api.db.database.styles_collection.delete_one", new_callable=AsyncMock):
+         patch("backend.api.db.database.styles_collection.delete_one", new_callable=AsyncMock), \
+         patch("backend.api.services.spaces.products_collection.update_many", new_callable=AsyncMock):
 
         result = await delete_style(style_id)
 
