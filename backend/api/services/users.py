@@ -4,6 +4,9 @@ from backend.api.db.database import users_collection
 from bson import ObjectId
 from backend.api.services.auth_service import get_password_hash
 from backend.api.services  import products as products_service
+from backend.api.services import user_history as user_history_service
+from backend.api.schemas.user_history import UserHistoryCreate
+
 
 async def list_users(skip: int = 0, limit: int = 10):
     users = await users_collection.find().skip(skip).limit(limit).to_list(length=limit)
@@ -100,7 +103,14 @@ async def add_cart_product(user_id: str, product_id: str, quantity: int = 1):
         {"_id": ObjectId(user_id)},
         {"$set": {"cart_products": cart}}
     )
+
+    await user_history_service.create_user_history(
+        UserHistoryCreate(product_id=product_id, action="like"),
+        user_id
+    )
+
     return True
+
 
 
 async def remove_cart_product(user_id: str, product_id: str):
