@@ -10,7 +10,8 @@ from backend.api.schemas.user_history import UserHistoryCreate
 
 async def list_users(skip: int = 0, limit: int = 10):
     users = await users_collection.find().skip(skip).limit(limit).to_list(length=limit)
-    return [from_mongo(user, UserRead) for user in users]
+    total_count = await users_collection.count_documents({})
+    return [from_mongo(user, UserRead) for user in users], total_count
 
 async def get_user(id: str):
     if not ObjectId.is_valid(id):
@@ -59,14 +60,17 @@ async def update_user(id: str, updated_data: UserUpdate):
                 "$or": [
                     {"username": updated_data.username},
                     {"email": updated_data.email}
-                ]
+                ],
+                "_id": {"$ne": ObjectId(id)}  # ⚠️ no cuentes al usuario actual
             })
             if existing_users > 0:
                 return None
         if updated_data.password:
             updated_data.password = get_password_hash(updated_data.password)
-        await users_collection.update_one({"_id": ObjectId(id)}, {"$set": updated_data.model_dump(exclude_unset=True)
-})
+        await users_collection.update_one(
+            {"_id": ObjectId(id)},
+            {"$set": updated_data.model_dump(exclude_unset=True)}
+        )
         return await get_user(id)
     return None
 

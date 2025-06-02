@@ -1,20 +1,28 @@
-from fastapi import APIRouter, status, HTTPException
+from fastapi import APIRouter, status, HTTPException, Response, Depends, Request
+import json
 from backend.api.services import users as users_service
 from backend.api.schemas.users import *
 from backend.api.models.users import  UserDB
 from backend.api.schemas.users import CartItem, CartItemPayload
 from backend.api.services.auth_service import get_current_user
-from fastapi import Depends
 from backend.api.dependencies.auth import is_admin
 from typing import List
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/", response_model=List[UserRead], status_code=status.HTTP_200_OK)
-async def get_users(skip: int = 0, limit: int = 10, current_user: UserDB = Depends(is_admin)):
-    users = await users_service.list_users(skip, limit)  
-    if not users:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No users found")
+async def get_users(request: Request, response: Response, current_user: UserDB = Depends(is_admin)):
+    range_param = request.query_params.get('range')
+    if range_param:
+        range_values = json.loads(range_param)
+        skip = range_values[0]
+        limit = range_values[1] - range_values[0] + 1
+    else:
+        skip = 0
+        limit = 10
+
+    users, total = await users_service.list_users(skip=skip, limit=limit)
+    response.headers["Content-Range"] = f"0-{skip + len(users) - 1}/{total}"
     return users
 
 
@@ -53,8 +61,11 @@ async def delete_user(id: str, current_user: UserDB = Depends(is_admin)):
 
 @router.put("/{id}", response_model=UserRead, status_code=status.HTTP_200_OK)
 async def update_user(id: str, user_data: UserUpdate, current_user: UserDB = Depends(get_current_user)):
-    if str(current_user._id) != id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only update your own user")
+    if str(current_user._id) != id and current_user.username != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only update your own user"
+        )
     updated_user = await users_service.update_user(id, user_data)  
     if not updated_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")

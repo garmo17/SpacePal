@@ -1,17 +1,26 @@
-from fastapi import APIRouter, status, HTTPException, Depends
+from fastapi import APIRouter, status, HTTPException, Depends, Response, Request
 from backend.api.dependencies.auth import is_admin
 from backend.api.services import spaces as spaces_service
 from backend.api.schemas.spaces import *
 from typing import List
+import json
 
 
 router = APIRouter(prefix="/spaces", tags=["spaces"])
 
 @router.get("/", response_model=List[SpaceRead], status_code=status.HTTP_200_OK)
-async def get_spaces(skip: int = 0, limit: int = 10):
-    spaces = await spaces_service.list_spaces(skip, limit)  
-    if not spaces:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No spaces found")
+async def get_spaces(request: Request, response: Response):
+    range_param = request.query_params.get('range')
+    if range_param:
+        range_values = json.loads(range_param)
+        skip = range_values[0]
+        limit = range_values[1] - range_values[0] + 1
+    else:
+        skip = 0
+        limit = 10
+
+    spaces, total = await spaces_service.list_spaces(skip, limit)
+    response.headers["Content-Range"] = f"0-{skip + len(spaces) - 1}/{total}"
     return spaces
 
 @router.get("/{id}", response_model=SpaceRead, status_code=status.HTTP_200_OK)

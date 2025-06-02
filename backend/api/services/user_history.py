@@ -5,6 +5,14 @@ from bson import ObjectId
 from datetime import datetime, timezone
 from typing import List
 
+
+async def get_all_user_histories(skip: int = 0, limit: int = 10) -> List[UserHistoryRead]:
+    cursor = user_history_collection.find().skip(skip).limit(limit)
+    history_docs = await cursor.to_list(length=limit)
+    total_count = await user_history_collection.count_documents({})
+    return [from_mongo(doc, UserHistoryRead) for doc in history_docs], total_count
+
+
 async def create_user_history(history_data: UserHistoryCreate, user_id: str) -> UserHistoryRead | None:
     entry = UserHistoryDB(
         user_id=user_id,
