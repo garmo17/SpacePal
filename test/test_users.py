@@ -14,14 +14,15 @@ async def test_get_user_me(async_client, override_get_current_user):
     assert response.json() == {
         "username": "mockuser",
         "email": "mock@example.com",
-        "id": "user123"
+        "id": "user123",
+        "liked_products": []
     }
 
 @pytest.mark.asyncio
 async def test_get_users_list(async_client, override_is_admin):
     fake_users = [
-        UserRead(username="admin", email="admin@example.com", id="1"),
-        UserRead(username="user1", email="user1@example.com", id="2"),
+        UserRead(username="admin", email="admin@example.com", id="1", liked_products=[]),
+        UserRead(username="user1", email="user1@example.com", id="2", liked_products=[]),
     ]
 
     with patch("backend.api.services.users.list_users", return_value=fake_users):
@@ -29,13 +30,13 @@ async def test_get_users_list(async_client, override_is_admin):
 
     assert response.status_code == 200
     assert response.json() == [
-        {"username": "admin", "email": "admin@example.com", "id": "1"},
-        {"username": "user1", "email": "user1@example.com", "id": "2"},
+        {"username": "admin", "email": "admin@example.com", "id": "1", "liked_products": []},
+        {"username": "user1", "email": "user1@example.com", "id": "2", "liked_products": []},
     ]
 
 @pytest.mark.asyncio
 async def test_get_user_by_id(async_client, override_is_admin):
-    fake_user = UserRead(username="targetuser", email="target@example.com", id="abc123")
+    fake_user = UserRead(username="targetuser", email="target@example.com", id="abc123", liked_products=[])
 
     with patch("backend.api.services.users.get_user", return_value=fake_user):
         response = await async_client.get("/api/v1/users/abc123")
@@ -44,7 +45,8 @@ async def test_get_user_by_id(async_client, override_is_admin):
     assert response.json() == {
         "username": "targetuser",
         "email": "target@example.com",
-        "id": "abc123"
+        "id": "abc123",
+        "liked_products": []
     }
 
 @pytest.mark.asyncio
@@ -52,7 +54,8 @@ async def test_create_user(async_client):
     user_data = {
         "username": "newuser",
         "email": "newuser@example.com",
-        "password": "newpassword"
+        "password": "newpassword",
+        "liked_products": []
     }
 
     fake_user = UserRead(**user_data, id="fakeid123")
@@ -64,7 +67,8 @@ async def test_create_user(async_client):
     assert response.json() == {
         "username": "newuser",
         "email": "newuser@example.com",
-        "id": "fakeid123"
+        "id": "fakeid123",
+        "liked_products": []
     }
 
 @pytest.mark.asyncio
@@ -72,7 +76,8 @@ async def test_create_user_conflict(async_client):
     user_data = {
         "username": "newuser",
         "email": "newuser@example.com",
-        "password": "somepass"
+        "password": "somepass",
+        "liked_products": []
     }
 
     with patch("backend.api.services.users.create_user", return_value=None):
@@ -83,7 +88,7 @@ async def test_create_user_conflict(async_client):
 
 @pytest.mark.asyncio
 async def test_update_own_user(async_client, override_get_current_user):
-    updated_user = UserRead(username="mockuser", email="mock_new@example.com", id="user123")
+    updated_user = UserRead(username="mockuser", email="mock_new@example.com", id="user123", liked_products=[])
 
     with patch("backend.api.services.users.update_user", return_value=updated_user):
         response = await async_client.put("/api/v1/users/user123", json={"email": "mock_new@example.com"})
@@ -92,7 +97,8 @@ async def test_update_own_user(async_client, override_get_current_user):
     assert response.json() == {
         "username": "mockuser",
         "email": "mock_new@example.com",
-        "id": "user123"
+        "id": "user123",
+        "liked_products": []
     }
 
 @pytest.mark.asyncio

@@ -49,7 +49,7 @@ async def test_get_product_success():
     product_id = ObjectId()
     mock_doc = {
         "_id": product_id, "name": "Chair", "description": "Comfy", "price": 50.0,
-        "purchase_link": "http://example.com/chair", "image_url": "http://example.com/chair.jpg", "category": "furniture", 
+        "purchase_link": "http://example.com/chair", "image_url": "http://example.com/chair.jpg", "category": "tables and chairs", 
         "spaces": ["office"], "styles": ["modern"], "rating": 4.0, "review_count": 5, "reviews": []
     }
 
@@ -92,13 +92,13 @@ async def test_create_product_conflict():
 async def test_create_product_success():
     data = ProductCreate(
         name="Table", description="Wood", price=80.0,
-        purchase_link="http://example.com/table", image_url="http://example.com/table.jpg", category="furniture",
+        purchase_link="http://example.com/table", image_url="http://example.com/table.jpg", category="tables and chairs",
         spaces=["dining room"], styles=["rustic"], rating=4.2, review_count=8, reviews=[]
     )
     inserted_id = ObjectId()
     mock_doc = {
         "_id": inserted_id, "name": "Table", "description": "Wood", "price": 80.0,
-        "purchase_link": "http://example.com/table", "image_url": "http://example.com/table.jpg", "category": "furniture",
+        "purchase_link": "http://example.com/table", "image_url": "http://example.com/table.jpg", "category": "tables and chairs",
         "spaces": ["dining room"], "styles": ["rustic"], "rating": 4.2, "review_count": 8, "reviews": []
     }
 
@@ -113,9 +113,12 @@ async def test_create_product_success():
     with patch("backend.api.db.database.products_collection.count_documents", AsyncMock(return_value=0)), \
          patch("backend.api.db.database.products_collection.insert_one", AsyncMock(return_value=AsyncMock(inserted_id=inserted_id))), \
          patch("backend.api.db.database.products_collection.find_one", AsyncMock(return_value=mock_doc)), \
-         patch("backend.api.services.products.load_embeddings", AsyncMock(return_value = mocked_embeddings)):
+         patch("backend.api.services.products.load_embeddings", AsyncMock(return_value = mocked_embeddings)), \
+         patch("backend.api.ml.categorization.spaces_collection.find_one", AsyncMock(return_value={"_id": ObjectId()})), \
+         patch("backend.api.ml.categorization.styles_collection.find_one", AsyncMock(return_value={"_id": ObjectId()})):
 
         result = await create_product(data)
+        print(result)
         assert result.name == "Table"
         assert result.id == str(inserted_id)
 
@@ -223,7 +226,9 @@ async def test_create_products_bulk_success():
     with patch("backend.api.services.products.load_embeddings", AsyncMock(return_value=mocked_embeddings)), \
          patch("backend.api.services.products.products_collection.find_one", side_effect=find_one_side_effect), \
          patch("backend.api.services.products.products_collection.insert_many", AsyncMock(return_value=AsyncMock(inserted_ids=[created_doc["_id"]]))), \
-         patch("backend.api.services.products.products_collection.find", return_value=AsyncMock(to_list=AsyncMock(return_value=[created_doc]))):
+         patch("backend.api.services.products.products_collection.find", return_value=AsyncMock(to_list=AsyncMock(return_value=[created_doc]))), \
+         patch("backend.api.ml.categorization.spaces_collection.find_one", AsyncMock(return_value={"_id": ObjectId()})), \
+         patch("backend.api.ml.categorization.styles_collection.find_one", AsyncMock(return_value={"_id": ObjectId()})):
 
         result = await create_products(products_data)
 
@@ -251,7 +256,8 @@ async def test_delete_product_success():
     )
 
     with patch("backend.api.services.products.get_product", AsyncMock(return_value=mock_product)), \
-         patch("backend.api.db.database.products_collection.delete_one", AsyncMock()):
+         patch("backend.api.db.database.products_collection.delete_one", AsyncMock()), \
+         patch("backend.api.services.products.users_collection.update_many", AsyncMock()):
         result = await delete_product(product_id)
         assert result is mock_product
 
