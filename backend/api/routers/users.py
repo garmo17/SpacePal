@@ -1,7 +1,8 @@
 from fastapi import APIRouter, status, HTTPException
 from backend.api.services import users as users_service
 from backend.api.schemas.users import *
-from backend.api.models.users import *
+from backend.api.models.users import  UserDB
+from backend.api.schemas.users import CartItem, CartItemPayload
 from backend.api.services.auth_service import get_current_user
 from fastapi import Depends
 from backend.api.dependencies.auth import is_admin
@@ -59,33 +60,65 @@ async def update_user(id: str, user_data: UserUpdate, current_user: UserDB = Dep
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return updated_user
 
-@router.get("/me/likes", response_model=List[ProductIdPayload], status_code=status.HTTP_200_OK)
-async def get_liked_products(current_user: UserDB = Depends(get_current_user)):
-    liked_products = await users_service.get_liked_products(str(current_user._id))
-    if liked_products is None:
+@router.get("/me/cart", response_model=List[CartItem], status_code=status.HTTP_200_OK)
+async def get_cart_products(current_user: UserDB = Depends(get_current_user)):
+    cart_products = await users_service.get_cart_products(str(current_user._id))
+    if cart_products is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     
-    return [{"product_id": p} for p in liked_products]
+    return cart_products
 
-@router.post("/me/likes", status_code=status.HTTP_200_OK)
-async def add_liked_product(payload: ProductIdPayload, current_user: UserDB = Depends(get_current_user)):
-    product_id = payload.product_id
+@router.post("/me/cart", status_code=status.HTTP_200_OK)
+async def add_cart_product(payload: CartItemPayload, current_user: UserDB = Depends(get_current_user)):
+    if not payload.product_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Product ID is required")
+    
+    result = await users_service.add_cart_product(
+        str(current_user._id),
+        payload.product_id,
+        payload.quantity
+    )
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if result is False:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
+    return {"message": "Producto añadido al carrito"}
+
+@router.patch("/me/cart/{product_id}", status_code=status.HTTP_200_OK)
+async def update_cart_product_quantity(
+    product_id: str,
+    payload: QuantityPayload,
+    current_user: UserDB = Depends(get_current_user)
+):
     if not product_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Product ID is required")
-    result = await users_service.add_liked_product(str(current_user._id), product_id)
+    
+    result = await users_service.update_product_quantity(
+        str(current_user._id),
+        product_id,
+        payload.quantity
+    )
     if result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     if not result:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="El producto ya está en favoritos")
-    return {"message": "Producto añadido a favoritos"}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Producto no está en el carrito")
+    return {"message": "Cantidad actualizada correctamente"}
 
-@router.delete("/me/likes/{product_id}", status_code=status.HTTP_200_OK)
-async def remove_liked_product(product_id: str, current_user: UserDB = Depends(get_current_user)):
+@router.delete("/me/cart/clear", status_code=status.HTTP_200_OK)
+async def clear_cart(current_user: UserDB = Depends(get_current_user)):
+    result = await users_service.clear_cart(str(current_user._id))
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    return {"message": "Carrito vaciado correctamente"}
+
+
+@router.delete("/me/cart/{product_id}", status_code=status.HTTP_200_OK)
+async def remove_cart_product(product_id: str, current_user: UserDB = Depends(get_current_user)):
     if not product_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Product ID is required")
-    result = await users_service.remove_liked_product(str(current_user._id), product_id)
+    result = await users_service.remove_cart_product(str(current_user._id), product_id)
     if result is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     if not result:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El producto no está en favoritos")
-    return {"message": "Producto eliminado de favoritos"}
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El producto no está en el carrito")
+    return {"message": "Producto eliminado del carrito"}

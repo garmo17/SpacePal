@@ -1,6 +1,10 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List, Type, TypeVar
 
+class CartItem(BaseModel):
+    product_id: str
+    quantity: int
+
 class UserBase(BaseModel):
     username: str
     email: EmailStr
@@ -10,16 +14,23 @@ class UserCreate(UserBase):
 
 class UserRead(UserBase):
     id: str
-    liked_products: Optional[List[str]] = []
+    cart_products: Optional[List[CartItem]] = []
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[EmailStr] = None
     password: Optional[str] = None
-    liked_products: Optional[List[str]] = None
+    cart_products: Optional[List[CartItem]] = None
 
 class ProductIdPayload(BaseModel):
     product_id: str
+
+class CartItemPayload(BaseModel):
+    product_id: str
+    quantity: int
+
+class QuantityPayload(BaseModel):
+    quantity: int
 
 T = TypeVar("T", bound=BaseModel)
     
