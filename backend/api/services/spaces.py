@@ -6,7 +6,8 @@ from typing import List
 
 async def list_spaces(skip: int = 0, limit: int = 10):
     spaces = await spaces_collection.find().skip(skip).limit(limit).to_list(length=limit)
-    return [from_mongo(space, SpaceRead) for space in spaces]
+    total = await spaces_collection.count_documents({})
+    return [from_mongo(space, SpaceRead) for space in spaces], total
 
 async def get_space(id: str):
     if not ObjectId.is_valid(id):

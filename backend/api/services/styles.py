@@ -6,7 +6,8 @@ from typing import List
 
 async def list_styles(skip: int = 0, limit: int = 10):
     styles = await styles_collection.find().skip(skip).limit(limit).to_list(length=limit)
-    return [from_mongo(style, StyleRead) for style in styles]
+    total = await styles_collection.count_documents({})
+    return [from_mongo(style, StyleRead) for style in styles], total
 
 async def get_style(id: str):
     if not ObjectId.is_valid(id):

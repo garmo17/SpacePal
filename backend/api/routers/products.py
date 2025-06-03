@@ -1,4 +1,5 @@
-from fastapi import APIRouter, status, HTTPException, Depends, UploadFile, File
+from fastapi import APIRouter, status, HTTPException, Depends, UploadFile, File, Response, Request
+import json
 from backend.api.dependencies.auth import is_admin
 from backend.api.services import products as products_service
 from backend.api.schemas.products import *
@@ -9,10 +10,20 @@ from typing import List
 router = APIRouter(prefix="/products", tags=["products"])
 
 @router.get("/", response_model=List[ProductRead], status_code=status.HTTP_200_OK)
-async def get_products(skip: int = 0, limit: int = 10):
-    products = await products_service.list_products(skip, limit)  
+async def get_products(request: Request, response: Response):
+    range_param = request.query_params.get('range')
+    if range_param:
+        range_values = json.loads(range_param)  
+        skip = range_values[0]
+        limit = range_values[1] - range_values[0] + 1
+    else:
+        skip = 0
+        limit = 10
+
+    products, total = await products_service.list_products(skip, limit)
     if not products:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No products found")
+    response.headers["Content-Range"] = f"0-{skip + len(products) - 1}/{total}"
     return products
 
 @router.get("/{id}", response_model=ProductRead, status_code=status.HTTP_200_OK)

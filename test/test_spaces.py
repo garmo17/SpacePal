@@ -8,8 +8,9 @@ async def test_get_spaces_success(async_client):
         SpaceRead(name="Living Room", description="Nice space", image="http://test.com/img1.jpg", id="1"),
         SpaceRead(name="Kitchen", description="Cooking area", image="http://test.com/img2.jpg", id="2"),
     ]
+    fake_total = len(fake_spaces)
 
-    with patch("backend.api.services.spaces.list_spaces", return_value=fake_spaces):
+    with patch("backend.api.services.spaces.list_spaces", return_value=(fake_spaces, fake_total)):
         response = await async_client.get("/api/v1/spaces/")
 
     assert response.status_code == 200
@@ -17,6 +18,7 @@ async def test_get_spaces_success(async_client):
         {"name": "Living Room", "description": "Nice space", "image": "http://test.com/img1.jpg", "id": "1"},
         {"name": "Kitchen", "description": "Cooking area", "image": "http://test.com/img2.jpg", "id": "2"},
     ]
+    assert response.headers["Content-Range"] == f"0-{fake_total-1}/{fake_total}"
 
 @pytest.mark.asyncio
 async def test_get_space_by_id(async_client):

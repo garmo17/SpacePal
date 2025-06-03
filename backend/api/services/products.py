@@ -15,7 +15,8 @@ from backend.api.db.database import spaces_collection, styles_collection
 
 async def list_products(skip: int = 0, limit: int = 10):
     products = await products_collection.find().skip(skip).limit(limit).to_list(length=limit)
-    return [from_mongo(product, ProductRead) for product in products]
+    total = await products_collection.count_documents({})
+    return [from_mongo(product, ProductRead) for product in products], total
 
 async def get_product(id: str):
     if not ObjectId.is_valid(id):

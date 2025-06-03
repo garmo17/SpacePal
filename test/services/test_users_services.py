@@ -1,11 +1,33 @@
 import pytest
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, MagicMock
 from bson import ObjectId
 from backend.api.services.users import (
-    get_user, create_user, delete_user, update_user, delete_all_users
+    get_user, create_user, delete_user, update_user, delete_all_users, list_users
 )
 from backend.api.schemas.users import UserCreate, UserUpdate, UserRead
 
+
+@pytest.mark.asyncio
+async def test_list_users_returns_list():
+    mock_docs = [
+        {"_id": ObjectId(), "username": "test", "email": "test@test.com", "password": "hashed"}
+    ]
+    mock_to_list = AsyncMock(return_value=mock_docs)
+    mock_limit = MagicMock()
+    mock_limit.to_list = mock_to_list
+    mock_skip = MagicMock()
+    mock_skip.limit.return_value = mock_limit
+
+    mock_find_chain = MagicMock()
+    mock_find_chain.skip.return_value = mock_skip
+
+    with patch("backend.api.db.database.users_collection.find", return_value=mock_find_chain), \
+         patch("backend.api.db.database.users_collection.count_documents", new=AsyncMock(return_value=1)):
+            result, _ = await list_users()
+
+    assert isinstance(result, list)
+    assert result[0].username == "test"
+            
 
 @pytest.mark.asyncio
 async def test_get_user_valid_id():

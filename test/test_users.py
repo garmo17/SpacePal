@@ -24,8 +24,9 @@ async def test_get_users_list(async_client, override_is_admin):
         UserRead(username="admin", email="admin@example.com", id="1", cart_products=[]),
         UserRead(username="user1", email="user1@example.com", id="2", cart_products=[]),
     ]
+    fake_total = len(fake_users)
 
-    with patch("backend.api.services.users.list_users", return_value=fake_users):
+    with patch("backend.api.services.users.list_users", return_value=(fake_users, fake_total)):
         response = await async_client.get("/api/v1/users/")
 
     assert response.status_code == 200
@@ -33,6 +34,7 @@ async def test_get_users_list(async_client, override_is_admin):
         {"username": "admin", "email": "admin@example.com", "id": "1", "cart_products": []},
         {"username": "user1", "email": "user1@example.com", "id": "2", "cart_products": []},
     ]
+    assert response.headers["Content-Range"] == f"0-{fake_total-1}/{fake_total}"
 
 @pytest.mark.asyncio
 async def test_get_user_by_id(async_client, override_is_admin):

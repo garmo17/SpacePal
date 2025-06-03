@@ -25,8 +25,8 @@ async def test_list_styles_returns_list():
     mock_find_chain.skip.return_value = mock_skip
 
     with patch("backend.api.db.database.styles_collection.find", return_value=mock_find_chain), \
-         patch("backend.api.services.spaces.products_collection.update_many", new_callable=AsyncMock):
-        result = await list_styles()
+         patch("backend.api.db.database.styles_collection.count_documents", new_callable=AsyncMock, return_value=1):
+        result, _ = await list_styles()
 
     assert isinstance(result, list)
     assert result[0].name == "Modern"

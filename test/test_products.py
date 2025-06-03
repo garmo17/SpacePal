@@ -3,27 +3,30 @@ from unittest.mock import patch
 from backend.api.schemas.products import ProductRead
 from fastapi.encoders import jsonable_encoder
 
-# GET /products/
 @pytest.mark.asyncio
 async def test_get_products_success(async_client):
     fake_products = [
         ProductRead(
             name="Lamp", description="LED Desk Lamp", price=29.99,
             purchase_link="http://example.com/lamp", image_url="http://example.com/lamp.jpg",
-            category="lighting", id="prod1", spaces=["office"], styles=["modern"], rating=4.5, review_count=10, reviews=[]
+            category="lighting", id="prod1", spaces=["office"], styles=["modern"],
+            rating=4.5, review_count=10, reviews=[]
         ),
         ProductRead(
             name="Chair", description="Office Chair", price=89.99,
             purchase_link="http://example.com/chair", image_url="http://example.com/chair.jpg",
-            category="furniture", id="prod2", spaces=["office"], styles=["ergonomic"], rating=4.0, review_count=5, reviews=[]
+            category="furniture", id="prod2", spaces=["office"], styles=["ergonomic"],
+            rating=4.0, review_count=5, reviews=[]
         )
     ]
+    fake_total = 2
 
-    with patch("backend.api.services.products.list_products", return_value=fake_products):
+    with patch("backend.api.services.products.list_products", return_value=(fake_products, fake_total)):
         response = await async_client.get("/api/v1/products/")
 
     assert response.status_code == 200
     assert response.json() == jsonable_encoder(fake_products)
+    assert response.headers["Content-Range"] == f"0-{len(fake_products)-1}/{fake_total}"
 
 # POST /products/ (success)
 @pytest.mark.asyncio

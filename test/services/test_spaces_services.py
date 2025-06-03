@@ -24,8 +24,9 @@ async def test_list_spaces_returns_list():
     mock_find_chain = MagicMock()
     mock_find_chain.skip.return_value = mock_skip
 
-    with patch("backend.api.db.database.spaces_collection.find", return_value=mock_find_chain):
-        result = await list_spaces()
+    with patch("backend.api.db.database.spaces_collection.find", return_value=mock_find_chain), \
+         patch("backend.api.db.database.spaces_collection.count_documents", new_callable=AsyncMock, return_value=1):
+        result, _ = await list_spaces()
 
     assert isinstance(result, list)
     assert result[0].name == "Modern"

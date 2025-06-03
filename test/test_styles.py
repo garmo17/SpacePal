@@ -11,16 +11,19 @@ async def test_get_styles_success(async_client):
         StyleRead(name="Boho", description="Colorful and cozy", image="http://example.com/boho.jpg", id="style2"),
     ]
 
-    with patch("backend.api.services.styles.list_styles", return_value=fake_styles):
+    fake_total = len(fake_styles)
+
+    with patch("backend.api.services.styles.list_styles", return_value=(fake_styles, fake_total)):
         response = await async_client.get("/api/v1/styles/")
 
     assert response.status_code == 200
     assert response.json() == jsonable_encoder(fake_styles)
+    assert response.headers["Content-Range"] == f"0-{fake_total-1}/{fake_total}"
 
 # GET /styles/ -> 404
 @pytest.mark.asyncio
 async def test_get_styles_empty(async_client):
-    with patch("backend.api.services.styles.list_styles", return_value=[]):
+    with patch("backend.api.services.styles.list_styles", return_value=([], 0)):
         response = await async_client.get("/api/v1/styles/")
 
     assert response.status_code == 404

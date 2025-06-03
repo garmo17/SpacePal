@@ -1,4 +1,5 @@
-from fastapi import APIRouter, status, HTTPException, Depends
+from fastapi import APIRouter, status, HTTPException, Depends, Response, Request
+import json
 from backend.api.dependencies.auth import is_admin
 from backend.api.services import styles as styles_service
 from backend.api.schemas.styles import *
@@ -8,10 +9,20 @@ from typing import List
 router = APIRouter(prefix="/styles", tags=["styles"])
 
 @router.get("/", response_model=List[StyleRead], status_code=status.HTTP_200_OK)
-async def get_styles(skip: int = 0, limit: int = 10):
-    styles = await styles_service.list_styles(skip, limit)  
+async def get_styles(request: Request, response: Response):
+    range_param = request.query_params.get('range')
+    if range_param:
+        range_values = json.loads(range_param)
+        skip = range_values[0]
+        limit = range_values[1] - range_values[0] + 1
+    else:
+        skip = 0
+        limit = 10
+
+    styles, total = await styles_service.list_styles(skip, limit)
     if not styles:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No styles found")
+    response.headers["Content-Range"] = f"0-{skip + len(styles) - 1}/{total}"
     return styles
 
 @router.get("/{id}", response_model=StyleRead, status_code=status.HTTP_200_OK)

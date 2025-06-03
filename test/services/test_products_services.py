@@ -34,8 +34,9 @@ async def test_list_products_returns_list():
     mock_find_chain = MagicMock()
     mock_find_chain.skip.return_value = mock_skip
 
-    with patch("backend.api.db.database.products_collection.find", return_value=mock_find_chain):
-        result = await list_products()
+    with patch("backend.api.db.database.products_collection.find", return_value=mock_find_chain), \
+         patch("backend.api.db.database.products_collection.count_documents", AsyncMock(return_value=1)):
+        result, _ = await list_products()
 
     assert isinstance(result, list)
     assert result[0].name == "Lamp"

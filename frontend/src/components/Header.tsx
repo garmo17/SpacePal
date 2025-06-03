@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import Spinner from "@/components/Spinner";
 
 export default function Header({ children }: { children?: React.ReactNode }) {
-  const { isAuthenticated, user, logout, loading } = useAuth();
+  const { isAuthenticated, isAdmin, logout, loading } = useAuth();
 
   if (loading) {
     return (
@@ -45,8 +45,14 @@ export default function Header({ children }: { children?: React.ReactNode }) {
       <div className="flex gap-4">
         {isAuthenticated ? (
           <>
+            {/* Botón para el admin solo si es admin */}
+            {isAdmin && (
+              <Button asChild variant="outline" className="bg-camel text-black border border-white hover:bg-white hover:[color:var(--camel)!important]">
+                <Link href="/admin">Admin</Link>
+              </Button>
+            )}
             <Button asChild variant="ghost" className="p-0 flex items-center justify-center group">
-              <Link href="/cart">
+              <Link href="/profile/cart">
                 <ShoppingCart className="!h-7 !w-7 text-white group-hover:text-black transition-colors" />
               </Link>
             </Button>
