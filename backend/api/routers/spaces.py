@@ -20,6 +20,8 @@ async def get_spaces(request: Request, response: Response):
         limit = 10
 
     spaces, total = await spaces_service.list_spaces(skip, limit)
+    if not spaces:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No spaces found")
     response.headers["Content-Range"] = f"0-{skip + len(spaces) - 1}/{total}"
     return spaces
 

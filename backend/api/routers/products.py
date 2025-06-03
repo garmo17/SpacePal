@@ -21,6 +21,8 @@ async def get_products(request: Request, response: Response):
         limit = 10
 
     products, total = await products_service.list_products(skip, limit)
+    if not products:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No products found")
     response.headers["Content-Range"] = f"0-{skip + len(products) - 1}/{total}"
     return products
 

@@ -22,6 +22,8 @@ async def get_users(request: Request, response: Response, current_user: UserDB =
         limit = 10
 
     users, total = await users_service.list_users(skip=skip, limit=limit)
+    if not users:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No users found")
     response.headers["Content-Range"] = f"0-{skip + len(users) - 1}/{total}"
     return users
 

@@ -20,6 +20,8 @@ async def get_styles(request: Request, response: Response):
         limit = 10
 
     styles, total = await styles_service.list_styles(skip, limit)
+    if not styles:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No styles found")
     response.headers["Content-Range"] = f"0-{skip + len(styles) - 1}/{total}"
     return styles
 

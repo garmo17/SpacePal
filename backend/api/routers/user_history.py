@@ -22,10 +22,14 @@ async def get_user_histories(request: Request, response: Response, current_user:
 
     if current_user.username == "admin":
         history, total = await user_history_service.get_all_user_histories(skip, limit)
+        if not history:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No user history found")
         response.headers["Content-Range"] = f"0-{skip + len(history) - 1}/{total}"
         return history
     else:
         history = await user_history_service.get_user_history(str(current_user._id), skip, limit)
+        if not history:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No user history found")
         response.headers["Content-Range"] = f"0-{skip + len(history) - 1}/{len(history)}"
         return history
 
