@@ -34,12 +34,12 @@ async def get_user_histories(request: Request, response: Response, current_user:
         return history
 
 
-@router.get("/", response_model=List[UserHistoryRead], status_code=status.HTTP_200_OK)
-async def get_user_history(current_user: UserDB = Depends(get_current_user), skip: int = 0, limit: int = 10):
-    history = await user_history_service.get_user_history(str(current_user._id), skip, limit)
-    if not history:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No user history found")
-    return history
+@router.post("/", response_model=UserHistoryRead, status_code=status.HTTP_201_CREATED)
+async def create_user_history(user_history: UserHistoryCreate, current_user: UserDB = Depends(get_current_user)):
+    created_history = await user_history_service.create_user_history(user_history, str(current_user._id))
+    if not created_history:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create user history")
+    return created_history
 
 @router.delete("/", status_code=status.HTTP_200_OK)
 async def delete_user_history(current_user: UserDB = Depends(get_current_user)):

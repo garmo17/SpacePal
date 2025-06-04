@@ -13,6 +13,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import Footer from "@/components/Footer";
+import { toast } from "react-hot-toast";
 
 // Esquema para el nombre de usuario
 const profileSchema = z.object({
@@ -26,9 +28,7 @@ const passwordSchema = z.object({
 
 export default function ProfilePage() {
   const { userId, isAuthenticated, loading, login } = useAuth();
-  const [email, setEmail] = useState(""); // Estado para mostrar el email
-  const [success, setSuccess] = useState("");
-  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
+  const [email, setEmail] = useState("");
 
   const form = useForm<z.infer<typeof profileSchema>>({
     resolver: zodResolver(profileSchema),
@@ -70,12 +70,10 @@ export default function ProfilePage() {
 
       login(localStorage.getItem("access_token")!, userData.username, userData.id);
 
-      setSuccess("¡Perfil actualizado correctamente!");
-      setMessageType("success");
+      toast.success("¡Perfil actualizado correctamente!");
     } catch (err) {
       console.error("Error al actualizar perfil:", err);
-      setSuccess("Error al actualizar el perfil.");
-      setMessageType("error");
+      toast.error("Error al actualizar el perfil.");
     }
   };
 
@@ -88,13 +86,11 @@ export default function ProfilePage() {
         headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
       });
 
-      setSuccess("¡Contraseña actualizada correctamente!");
-      setMessageType("success");
+      toast.success("¡Contraseña cambiada correctamente!");
       passwordForm.reset();
     } catch (err) {
       console.error("Error al cambiar contraseña:", err);
-      setSuccess("Error al cambiar la contraseña. Revisa tus datos.");
-      setMessageType("error");
+      toast.error("Error al cambiar la contraseña.");
     }
   };
 
@@ -181,20 +177,10 @@ export default function ProfilePage() {
                   </Button>
                 </form>
               </Form>
-
-              {/* Mensaje de éxito o error */}
-              {success && (
-                <div
-                  className={`text-center font-semibold ${
-                    messageType === "success" ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {success}
-                </div>
-              )}
             </CardContent>
           </Card>
         </main>
+        <Footer />
       </div>
     </ProtectedPage>
   );

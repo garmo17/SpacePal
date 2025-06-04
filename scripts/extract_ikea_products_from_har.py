@@ -78,7 +78,7 @@ async def main():
             full_description = description_1
 
         # Categoría, espacios y estilos
-        category, spaces, styles = categorize_product_by_description(
+        category, spaces, styles = await categorize_product_by_description(
             full_description,
             category_embeddings,
             space_embeddings,

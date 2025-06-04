@@ -42,9 +42,11 @@ export default function Page() {
           <p className="text-lg leading-relaxed">
             Te ayudamos a encontrar los mejores productos de decoración según tu estilo, espacio y necesidades.
           </p>
-          <Button className="just self-start bg-camel hover:bg-white text-black font-bold py-2 px-6 rounded border-2 border-black transition-colors hover:[color:var(--camel)]">
-            Comenzar
-          </Button>
+          <Link href="/selection">
+            <Button className="just self-start bg-camel hover:bg-white text-black font-bold py-2 px-6 rounded border-2 border-black transition-colors hover:[color:var(--camel)]">
+              Comenzar
+            </Button>
+          </Link>
         </div>
       </main>
 

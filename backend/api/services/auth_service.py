@@ -17,6 +17,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/auth/token", auto_error=False)
 
 
 def get_password_hash(password: str) -> str:
@@ -85,3 +86,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserDB:
     if user is None:
         raise credentials_exception
     return user
+
+async def get_optional_user(token: Optional[str] = Depends(oauth2_scheme_optional)) -> Optional[UserDB]:
+    if not token:
+        return None
+    try:
+        return await get_current_user(token)
+    except HTTPException:
+        return None
