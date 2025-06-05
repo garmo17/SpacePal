@@ -12,7 +12,7 @@ from backend.api.ml.recomender import vectorize_products
 from backend.api.db.database import spaces_collection, styles_collection
 
 
-async def get_personalized(space: str, style: str, user: Optional[UserDB], limit: int = 10, offset: int = 0) -> List[ProductRead]:
+async def get_personalized(space: str, style: str, user: Optional[UserDB], limit: int = 10, offset: int = 0, category_list: Optional[List[str]] = None) -> List[ProductRead]:
     if not space or not style:
         raise HTTPException(status_code=400, detail="Space and style parameters are required")
 
@@ -26,12 +26,12 @@ async def get_personalized(space: str, style: str, user: Optional[UserDB], limit
     style_id = str(style_doc["_id"])
 
     if user is None:
-        return await get_top_products(space_id, style_id, limit, offset)
+        return await get_top_products(space_id, style_id, limit, offset, category_list)
 
     user_history = await user_history_service.get_user_history(str(user._id))
 
     if not user_history:
-        return await get_top_products(space_id, style_id, limit, offset)
+        return await get_top_products(space_id, style_id, limit, offset, category_list)
 
     liked_product_ids = [h.product_id for h in user_history]
     liked_products = [await products_service.get_product(pid) for pid in liked_product_ids]
@@ -44,7 +44,7 @@ async def get_personalized(space: str, style: str, user: Optional[UserDB], limit
     liked_matrix, vectorizer = vectorize_products(liked_dicts)
     user_vector = np.asarray(liked_matrix.mean(axis=0)).reshape(1, -1)
 
-    filtered_products = await products_service.get_products_by_space_and_style(space_id, style_id)
+    filtered_products = await products_service.get_products_by_space_and_style(space_id, style_id, category_list)
     if not filtered_products:
         raise HTTPException(status_code=404, detail="No products found for selected space and style")
 
@@ -59,7 +59,7 @@ async def get_personalized(space: str, style: str, user: Optional[UserDB], limit
     quality_scores_normalized = normalize_scores(quality_scores)
 
 
-    alpha, beta = 0.65, 0.35
+    alpha, beta = 0.70, 0.40
     final_scores = [
         alpha * sim + beta * qual
         for sim, qual in zip(similarity_scores, quality_scores_normalized)
@@ -73,8 +73,8 @@ async def get_personalized(space: str, style: str, user: Optional[UserDB], limit
     return [products_service.from_mongo(p, ProductRead) for p in paginated]
 
 
-async def get_top_products(space: str, style: str, limit: int, offset: int = 0) -> List[ProductRead]:
-    filtered_products = await products_service.get_products_by_space_and_style(space, style)
+async def get_top_products(space: str, style: str, limit: int, offset: int = 0, categories: Optional[List[str]] = None) -> List[ProductRead]:
+    filtered_products = await products_service.get_products_by_space_and_style(space, style, categories)
     if not filtered_products:
         raise HTTPException(status_code=404, detail="No products found for selected space and style")
 

@@ -65,6 +65,10 @@ export default function Seleccion() {
     }
   };
 
+  // Encontrar el nombre del espacio/estilo elegido según el ID guardado
+  const espacioSeleccionado = espacios.find((e) => e.id === espacioElegido);
+  const estiloSeleccionado = estilos.find((e) => e.id === estiloElegido);
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header>
@@ -94,11 +98,10 @@ export default function Seleccion() {
                 <div
                   key={espacio.id}
                   onClick={() => {
-                    console.log("CLICK ESPACIO", espacio.name);
-                    setEspacioElegido(espacio.name);
+                    setEspacioElegido(espacio.id);
                   }}
                   className={`rounded-xl overflow-hidden shadow-md border-2 transition-all cursor-pointer hover:scale-[1.01] ${
-                    espacioElegido === espacio.name
+                    espacioElegido === espacio.id
                       ? "border-[#c19073] bg-[#fdf7f4]"
                       : "border-gray-200 bg-white"
                   }`}
@@ -120,11 +123,10 @@ export default function Seleccion() {
                 <div
                   key={estilo.id}
                   onClick={() => {
-                    console.log("CLICK ESTILO", estilo.name);
-                    setEstiloElegido(estilo.name);
+                    setEstiloElegido(estilo.id);
                   }}
                   className={`rounded-xl overflow-hidden shadow-md border-2 transition-all cursor-pointer hover:scale-[1.01] ${
-                    estiloElegido === estilo.name
+                    estiloElegido === estilo.id
                       ? "border-[#c19073] bg-[#fdf7f4]"
                       : "border-gray-200 bg-white"
                   }`}
@@ -138,10 +140,12 @@ export default function Seleccion() {
             </div>
           </div>
         </div>
+
         <p className="text-sm text-gray-600 mt-4">
-          Espacio: <span className="font-mono">{espacioElegido || "ninguno"}</span> | 
-          Estilo: <span className="font-mono">{estiloElegido || "ninguno"}</span>
+          Espacio: <span className="font-mono">{espacioSeleccionado?.name || "ninguno"}</span> | 
+          Estilo: <span className="font-mono">{estiloSeleccionado?.name || "ninguno"}</span>
         </p>
+
         <Button
           onClick={handleContinuar}
           disabled={!espacioElegido || !estiloElegido}
