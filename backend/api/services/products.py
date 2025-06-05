@@ -222,8 +222,8 @@ async def get_product_recommendations(id: str, number: int = 5) -> List[ProductR
     if not product:
         return None
 
-    products = await list_products(limit=1000)
-    recommendations = recommend_by_cosine_similarity(str(product.id), products, number)
+    products, _ = await list_products(limit=1000)
+    recommendations = await recommend_by_cosine_similarity(str(product.id), products, number)
     return recommendations
     
 
@@ -235,19 +235,26 @@ async def get_product_reviews(product_id: str) -> List[ProductReview] | None:
     reviews.sort(key=lambda r: r.get("timestamp") or "", reverse=True)
     return [ProductReview(**review) for review in reviews]
 
-async def add_product_review(product_id: str, review: ProductReviewCreate) -> ProductReview | None:
+
+async def add_product_review(product_id: str, review: ProductReviewCreate, user_id: str, username: str) -> ProductReview | None:
     product = await get_product(product_id)
     if not product:
         return None
 
-    new_review = review.model_dump(exclude_unset=True)
-    new_review["timestamp"] = datetime.now(timezone.utc)
+    new_review = ProductReview(
+        id=str(uuid4()),
+        user_id=user_id,
+        username=username,
+        rating=review.rating,
+        comment=review.comment,
+        timestamp=datetime.now(timezone.utc)
+    )
 
     updated_reviews = product.reviews or []
     updated_reviews.append(new_review)
 
     review_count = len(updated_reviews)
-    rating = round(sum(r["rating"] for r in updated_reviews) / review_count, 2)
+    rating = round(sum(r.rating if isinstance(r, ProductReview) else r["rating"] for r in updated_reviews) / review_count, 2)
 
     update_data = ProductUpdate(
         reviews=updated_reviews,
@@ -256,14 +263,48 @@ async def add_product_review(product_id: str, review: ProductReviewCreate) -> Pr
     )
 
     await update_product(product_id, update_data)
-    return ProductReview(**new_review)
+    return new_review
 
-async def get_products_by_space_and_style(space: str, style: str, limit: int = 1000):
-    products = await products_collection.find({
+
+async def delete_product_review(product_id: str, review_id: str, user_id: str) -> bool:
+    product = await get_product(product_id)
+    if not product:
+        return False
+
+    updated_reviews = [
+        r for r in product.reviews
+        if str(r.get("id") if isinstance(r, dict) else r.id) != review_id
+    ]
+
+    if len(updated_reviews) == len(product.reviews):
+        return False  # No se encontró la review
+
+    review_count = len(updated_reviews)
+    rating = round(
+        sum(r["rating"] if isinstance(r, dict) else r.rating for r in updated_reviews) / review_count, 2
+    ) if review_count > 0 else 0.0
+
+    update_data = ProductUpdate(
+        reviews=updated_reviews,
+        review_count=review_count,
+        rating=rating
+    )
+
+    await update_product(product_id, update_data)
+    return True
+
+
+async def get_products_by_space_and_style(space: str, style: str, categories: Optional[List[str]] = None, limit: int = 1000):
+    query = {
         "spaces": space,
         "styles": style
-    }).to_list(length=limit)
+    }
+    if categories:
+        query["category"] = {"$in": categories}
+
+    products = await products_collection.find(query).to_list(length=limit)
     return products
+
 
 
 async def validate_and_filter_existing_ids(ids: List[str], collection) -> List[str]:

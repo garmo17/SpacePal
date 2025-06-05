@@ -4,6 +4,9 @@ from backend.api.dependencies.auth import is_admin
 from backend.api.services import products as products_service
 from backend.api.schemas.products import *
 from typing import List
+from backend.api.services.auth_service import get_current_user
+from backend.api.schemas.products import ProductReviewCreate, ProductReview
+from backend.api.models.users import UserDB
 
 
 
@@ -104,11 +107,29 @@ async def get_product_reviews(id: str):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
     return reviews
 
-@router.post("/products/{id}/reviews", response_model=ProductReview)
-async def add_product_review(id: str, review: ProductReviewCreate):
-    review = await products_service.add_product_review(id, review)  
+@router.post("/{id}/reviews", response_model=ProductReview)
+async def add_product_review(id: str, review: ProductReviewCreate, current_user: UserDB = Depends(get_current_user)):
+    user_id = str(current_user._id)
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not authenticated")
+    
+    username = current_user.username
+    review = await products_service.add_product_review(id, review, user_id, username)
+
     if not review:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Product not found")
     return review
-    
+
+@router.delete("/{id}/reviews/{review_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_product_review(id: str, review_id: str, current_user: UserDB = Depends(get_current_user)):
+    user_id = str(current_user._id)
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not authenticated")
+
+    success = await products_service.delete_product_review(id, review_id, user_id)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review not found or you are not authorized to delete it")
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+  
     
