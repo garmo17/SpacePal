@@ -1,16 +1,18 @@
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, Field
 from datetime import datetime
 from typing import Optional, Type, TypeVar, List
+from uuid import uuid4
 
 
 class ProductReview(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid4()))
     user_id: str
+    username: str
     rating: float
     comment: Optional[str] = None
     timestamp: Optional[datetime] = None
 
 class ProductReviewCreate(BaseModel):
-    user_id: str
     rating: float
     comment: Optional[str] = None
 

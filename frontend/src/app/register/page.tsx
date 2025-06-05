@@ -18,9 +18,9 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import axios from "@/lib/axios";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "react-hot-toast";
 
 // 1️⃣ Esquema de validación con zod
 const formSchema = z.object({
@@ -30,9 +30,6 @@ const formSchema = z.object({
 });
 
 export default function RegisterPage() {
-  const [success, setSuccess] = useState("");
-  const [messageType, setMessageType] = useState<"success" | "error" | "">("");
-
   const { login } = useAuth();
   const router = useRouter();
 
@@ -65,8 +62,7 @@ export default function RegisterPage() {
 
       login(response.data.access_token, values.username, meResponse.data.id);
 
-      setSuccess("¡Usuario registrado con éxito!");
-      setMessageType("success");
+      toast.success("Usuario creado correctamente. Redirigiendo...");
       form.reset();
 
       setTimeout(() => {
@@ -74,8 +70,7 @@ export default function RegisterPage() {
       }, 1000);
     } catch (err: any) {
       console.error(err);
-      setSuccess("Error al crear usuario, el nombre de usuario o correo ya están en uso.");
-      setMessageType("error");
+      toast.error("Error al crear el usuario. El nombre usuario o el correo ya está en uso. Inténtalo de nuevo.");
     }
   }
 
@@ -152,12 +147,6 @@ export default function RegisterPage() {
                 >
                   Registrarse
                 </Button>
-
-                {success && (
-                  <p className={messageType === "success" ? "text-green-600" : "text-red-600"}>
-                    {success}
-                  </p>
-                )}
               </form>
             </Form>
           </CardContent>

@@ -37,6 +37,13 @@ async def get_user_history(user_id: str, skip: int = 0, limit: int = 50) -> List
     history_docs = await cursor.to_list(length=limit)
     return [from_mongo(doc, UserHistoryRead) for doc in history_docs]
 
-async def delete_user_history(user_id: str) -> bool:
-    result = await user_history_collection.delete_many({"user_id": user_id})
+async def delete_user_history() -> bool:
+    result = await user_history_collection.delete_many({})
+    return result.deleted_count > 0
+
+async def delete_user_history_by_id(history_id: str) -> bool:
+    if not ObjectId.is_valid(history_id):
+        return False
+    
+    result = await user_history_collection.delete_one({"_id": ObjectId(history_id)})
     return result.deleted_count > 0

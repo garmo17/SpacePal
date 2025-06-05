@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/form";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "react-hot-toast";
 
 // Esquema de validación con zod
 const loginSchema = z.object({
@@ -28,7 +29,6 @@ const loginSchema = z.object({
 });
 
 export default function LoginPage() {
-  const [success, setSuccess] = useState("");
   const { login } = useAuth();
   const router = useRouter();
   const form = useForm<z.infer<typeof loginSchema>>({
@@ -62,7 +62,7 @@ const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     // 3️⃣ Llama a login del AuthContext
     login(accessToken, username, id);
 
-    setSuccess("¡Inicio de sesión exitoso!");
+    toast.success("¡Inicio de sesión exitoso!");
     form.reset();
 
     // 4️⃣ Redirige al home o donde quieras
@@ -71,7 +71,7 @@ const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     }, 1000);
   } catch (err: any) {
     console.error(err);
-    setSuccess("Error al iniciar sesión: usuario o contraseña incorrectos");
+    toast.error("Usuario o contraseña incorrectos");
   }
 };
 
@@ -137,16 +137,6 @@ const onSubmit = async (values: z.infer<typeof loginSchema>) => {
                 >
                   Iniciar sesión
                 </Button>
-
-                {success && (
-                  <div
-                    className={`text-center font-semibold ${
-                      success.includes("exitoso") ? "text-green-600" : "text-red-600"
-                    }`}
-                  >
-                    {success}
-                  </div>
-                )}
               </form>
             </Form>
           </CardContent>

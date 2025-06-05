@@ -11,6 +11,7 @@ import MyLayout from '@/lib/MyLayout';
 
 
 
+
 const UserList = () => (
   <List>
     <Datagrid rowClick="edit">
@@ -151,10 +152,21 @@ const UserHistoryList = () => (
     <Datagrid rowClick={false}>
       <TextField source="id" />
       <TextField source="user_id" label="User ID" />
+      <TextField source="product_id" label="Product ID" />
       <TextField source="action" />
       <DateField source="timestamp" showTime />
     </Datagrid>
   </List>
+);
+
+const UserHistoryCreate = () => (
+  <Create>
+    <SimpleForm>
+      <TextInput source="user_id" />
+      <TextInput source="product_id" />
+      <TextInput source="action" />
+    </SimpleForm>
+  </Create>
 );
 
 
@@ -180,7 +192,12 @@ export default function AdminPage() {
       <Resource name="spaces" list={SpaceList} edit={SpaceEdit} create={SpaceCreate} />
       <Resource name="products" list={ProductList} edit={ProductEdit} create={ProductCreate} />
       <Resource name="styles" list={StyleList} edit={StyleEdit} create={StyleCreate} />
-      <Resource name="user_history" list={UserHistoryList} />
+      <Resource
+        name="user_history"
+        list={UserHistoryList}
+        create={UserHistoryCreate}
+        options={{ label: "User History" }}
+      />
     </Admin>
   );
 }

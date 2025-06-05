@@ -30,7 +30,6 @@ async def get_users(request: Request, response: Response, current_user: UserDB =
 
 @router.get("/me", response_model=UserRead, status_code=status.HTTP_200_OK)
 async def read_users_me(current_user: UserDB = Depends(get_current_user)):
-    print(f"Current user: {current_user.username}, {current_user.email}, {current_user._id}")
     return UserRead(username=current_user.username, email=current_user.email, id=str(current_user._id))
 
 @router.get("/{id}", response_model=UserRead, status_code=status.HTTP_200_OK)

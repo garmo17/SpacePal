@@ -9,6 +9,8 @@ import Spinner from "@/components/Spinner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import ProtectedPage from "@/components/ProtectedPage";
+import { toast } from "react-hot-toast";
+
 
 interface CartItem {
   product_id: string;
@@ -70,10 +72,10 @@ function CartPageContent() {
           item.product_id === productId ? { ...item, quantity } : item
         )
       );
-      setSuccess("¡Cantidad actualizada!");
+      toast.success("¡Cantidad actualizada!");
     } catch (err) {
       console.error("Error updating quantity:", err);
-      setSuccess("Error al actualizar la cantidad.");
+      toast.error("Error al actualizar la cantidad.");
     }
   };
 
@@ -84,10 +86,10 @@ function CartPageContent() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCart((prev) => prev.filter((item) => item.product_id !== productId));
-      setSuccess("Producto eliminado del carrito.");
+      toast.success("Producto eliminado del carrito.");
     } catch (err) {
       console.error("Error removing product:", err);
-      setSuccess("Error al eliminar el producto.");
+      toast.error("Error al eliminar el producto.");
     }
   };
 
@@ -98,10 +100,10 @@ function CartPageContent() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCart([]);
-      setSuccess("Carrito vaciado correctamente.");
+      toast.success("Carrito vaciado correctamente.");
     } catch (err) {
       console.error("Error clearing cart:", err);
-      setSuccess("Error al vaciar el carrito.");
+      toast.error("Error al vaciar el carrito.");
     }
   };
 
@@ -127,15 +129,6 @@ function CartPageContent() {
           <h1 className="text-3xl font-bold">
             🛒 Carrito de {user ?? "Invitado"}
           </h1>
-          {success && (
-            <div
-              className={`font-semibold text-center ${
-                success.includes("Error") ? "text-red-600" : "text-green-600"
-              }`}
-            >
-              {success}
-            </div>
-          )}
           {cart.length === 0 ? (
             <p className="text-gray-500 text-center">¡Tu carrito está vacío!</p>
           ) : (
