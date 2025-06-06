@@ -11,12 +11,18 @@ export default function Page() {
       <Header>
         <div className="flex gap-2">
           <Link href="/login">
-            <Button variant="outline" className="bg-camel text-black border border-white hover:bg-white hover:[color:var(--camel)!important]">
+            <Button
+              variant="outline"
+              className="bg-camel text-black border border-white hover:bg-white hover:[color:var(--camel)!important]"
+            >
               Iniciar sesión
             </Button>
           </Link>
           <Link href="/register">
-            <Button variant="outline" className="bg-camel text-black border border-white hover:bg-white hover:[color:var(--camel)!important]">
+            <Button
+              variant="outline"
+              className="bg-camel text-black border border-white hover:bg-white hover:[color:var(--camel)!important]"
+            >
               Registrarse
             </Button>
           </Link>
@@ -24,33 +30,33 @@ export default function Page() {
       </Header>
 
       {/* Contenido principal */}
-      <main className="flex flex-col md:flex-row flex-1 p-8 gap-12 items-center">
+      <main className="flex flex-col md:flex-row flex-1 px-12 py-16 gap-16 items-center">
         {/* Imagen */}
         <div className="flex-1 flex justify-center">
           <img
             src="/imagen_pantalla_principal.png"
             alt="Decoración"
-            className="max-w-md w-full rounded shadow-lg"
+            className="max-w-lg w-full rounded-xl shadow-xl"
           />
         </div>
 
         {/* Texto */}
-        <div className="flex-1 flex flex-col justify-center space-y-6 max-w-xl">
-          <h1 className="text-4xl font-bold leading-tight">
+        <div className="flex-1 flex flex-col justify-center space-y-8 max-w-2xl pr-4">
+          <h1 className="text-5xl font-bold leading-tight">
             Encuentra el estilo perfecto para tu espacio
           </h1>
-          <p className="text-lg leading-relaxed">
+          <p className="text-xl leading-relaxed">
             Te ayudamos a encontrar los mejores productos de decoración según tu estilo, espacio y necesidades.
           </p>
           <Link href="/selection">
-            <Button className="just self-start bg-camel hover:bg-white text-black font-bold py-2 px-6 rounded border-2 border-black transition-colors hover:[color:var(--camel)]">
+            <Button className="self-start bg-camel hover:bg-white text-black text-lg font-bold py-3 px-8 rounded-xl border-2 border-black transition-colors hover:[color:var(--camel)] shadow-md">
               Comenzar
             </Button>
           </Link>
         </div>
       </main>
 
-      <Footer/>
+      <Footer />
     </div>
   );
 }
