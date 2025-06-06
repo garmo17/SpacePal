@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
 import Spinner from "@/components/Spinner";
+import Image from "next/image";
 
 export default function Header({ children }: { children?: React.ReactNode }) {
   const { isAuthenticated, isAdmin, logout, loading } = useAuth();
@@ -12,7 +13,7 @@ export default function Header({ children }: { children?: React.ReactNode }) {
     return (
       <header className="flex justify-between items-center p-4 bg-neutral-800 text-white">
         <div className="flex items-center gap-4">
-          <img src="/logo.png" alt="Logo" className="h-8" />
+          <Image src="/logo.png" alt="Logo" className="h-8" width={50} height={200}/>
           <div className="flex gap-2 items-center">
             <Spinner />
           </div>
@@ -27,7 +28,7 @@ export default function Header({ children }: { children?: React.ReactNode }) {
   return (
     <header className="flex justify-between items-center p-4 bg-neutral-800 text-white">
       <div className="flex items-center gap-4">
-        <img src="/logo.png" alt="Logo" className="h-8" />
+        <Image src="/logo.png" alt="Logo" className="h-8" width={50} height={200}/>
         <div className="flex gap-2 items-center">
           <Button asChild variant="ghost" className="p-0 flex items-center justify-center group">
             <Link href="/">

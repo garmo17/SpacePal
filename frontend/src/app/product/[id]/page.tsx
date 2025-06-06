@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { Star } from "lucide-react";
+import Image from "next/image";
+import axios from "@/lib/axios";
 
 interface Review {
   id: string;
@@ -18,7 +20,6 @@ interface Review {
   comment?: string;
   timestamp?: string;
 }
-
 
 interface Product {
   id: string;
@@ -34,21 +35,18 @@ interface Product {
 
 export default function ProductPage() {
   const { id } = useParams();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, userId } = useAuth();
   const [product, setProduct] = useState<Product | null>(null);
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [newRating, setNewRating] = useState<number>(0);
   const [newComment, setNewComment] = useState("");
-  const { userId } = useAuth();
 
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/api/v1/products/${id}`);
-        if (!res.ok) throw new Error("No encontrado");
-        const data = await res.json();
-        setProduct(data);
+        const res = await axios.get(`/products/${id}`);
+        setProduct(res.data);
       } catch {
         toast.error("Producto no encontrado");
       } finally {
@@ -58,10 +56,10 @@ export default function ProductPage() {
 
     const fetchRecommendations = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/api/v1/products/${id}/recomendations?top_n=4`);
-        if (!res.ok) return;
-        const data = await res.json();
-        setRecommendations(data);
+        const res = await axios.get(`/products/${id}/recomendations`, {
+          params: { top_n: 4 },
+        });
+        setRecommendations(res.data);
       } catch (e) {
         console.error(e);
       }
@@ -75,17 +73,20 @@ export default function ProductPage() {
 
   const handleAddToCart = async () => {
     if (!isAuthenticated || !product) return;
-    const res = await fetch("http://localhost:8000/api/v1/users/me/cart", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-      },
-      body: JSON.stringify({ product_id: product.id, quantity: 1 }),
-    });
-
-    if (res.ok) toast.success("Producto añadido al carrito");
-    else toast.error("Error al añadir al carrito");
+    try {
+      await axios.post(
+        "/users/me/cart",
+        { product_id: product.id, quantity: 1 },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+        }
+      );
+      toast.success("Producto añadido al carrito");
+    } catch {
+      toast.error("Error al añadir al carrito");
+    }
   };
 
   const handleSubmitReview = async () => {
@@ -93,50 +94,51 @@ export default function ProductPage() {
       toast.error("La puntuación debe estar entre 1 y 5");
       return;
     }
-    try {
-      const res = await fetch(`http://localhost:8000/api/v1/products/${id}/reviews`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-        },
-        body: JSON.stringify({ rating: newRating, comment: newComment }),
-      });
 
-      if (res.ok) {
-        const review = await res.json();
-        setProduct(prev => prev ? { ...prev, reviews: [review, ...(prev.reviews || [])] } : prev);
-        toast.success("Reseña enviada correctamente");
-        setNewRating(0);
-        setNewComment("");
-      } else {
-        toast.error("Error al enviar la reseña");
-      }
-    } catch (e) {
-      toast.error("Error inesperado al enviar la reseña");
+    try {
+      const res = await axios.post(
+        `/products/${id}/reviews`,
+        {
+          rating: newRating,
+          comment: newComment,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
+        }
+      );
+
+      const review = res.data;
+      setProduct(prev =>
+        prev ? { ...prev, reviews: [review, ...(prev.reviews || [])] } : prev
+      );
+      toast.success("Reseña enviada correctamente");
+      setNewRating(0);
+      setNewComment("");
+    } catch {
+      toast.error("Error al enviar la reseña");
     }
   };
 
   const handleDeleteReview = async (reviewId: string) => {
     if (!product) return;
 
-    const res = await fetch(`http://localhost:8000/api/v1/products/${product.id}/reviews/${reviewId}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-      },
-    });
+    try {
+      await axios.delete(`/products/${product.id}/reviews/${reviewId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
 
-    if (res.ok) {
       toast.success("Reseña eliminada");
       setProduct(prev =>
         prev ? { ...prev, reviews: prev.reviews?.filter(r => r.id !== reviewId) } : prev
       );
-    } else {
+    } catch {
       toast.error("Error al eliminar la reseña");
     }
   };
-
 
   const renderStars = () => {
     const stars = [];
@@ -177,7 +179,7 @@ export default function ProductPage() {
 
       <main className="p-6 max-w-5xl mx-auto space-y-10">
         <section className="flex flex-col md:flex-row gap-6">
-          <img src={product.image_url} alt={product.name} className="w-full md:w-1/2 object-contain rounded bg-white" />
+          <Image src={product.image_url} alt={product.name} className="w-full md:w-1/2 object-contain rounded bg-white" width={300} height={160}/>
           <div className="flex flex-col gap-4">
             <h1 className="text-3xl font-bold">{product.name}</h1>
             <p className="text-gray-600">{product.category}</p>
@@ -244,7 +246,7 @@ export default function ProductPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {recommendations.map((rec) => (
               <Link href={`/product/${rec.id}`} key={rec.id} className="border rounded p-4 bg-white shadow hover:shadow-lg transition">
-                <img src={rec.image_url} alt={rec.name} className="h-40 w-full object-contain mb-2" />
+                <Image src={rec.image_url} alt={rec.name} className="h-40 w-full object-contain mb-2" width={300} height={160}/>
                 <h3 className="font-bold">{rec.name}</h3>
                 <p className="text-sm text-gray-600">{rec.category}</p>
                 <p className="text-sm text-yellow-500">⭐ {rec.rating?.toFixed(1)}</p>

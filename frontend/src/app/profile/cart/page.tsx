@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import ProtectedPage from "@/components/ProtectedPage";
 import { toast } from "react-hot-toast";
-
+import Image from "next/image";
 
 interface CartItem {
   product_id: string;
@@ -28,10 +28,8 @@ function CartPageContent() {
   const { user } = useAuth();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [success, setSuccess] = useState<string>("");
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
+  const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
 
   useEffect(() => {
     const fetchCart = async () => {
@@ -56,7 +54,7 @@ function CartPageContent() {
       }
     };
 
-    if (token) fetchCart();
+    fetchCart();
   }, [token]);
 
   const updateQuantity = async (productId: string, quantity: number) => {
@@ -96,7 +94,7 @@ function CartPageContent() {
   const clearCart = async () => {
     if (!token) return;
     try {
-      await axios.delete(`/users/me/cart/clear`, {
+      await axios.delete("/users/me/cart/clear", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCart([]);
@@ -136,9 +134,11 @@ function CartPageContent() {
                 key={item.product_id}
                 className="flex flex-col md:flex-row gap-4 p-4 shadow-md"
               >
-                <img
-                  src={item.product?.image_url}
-                  alt={item.product?.name}
+                <Image
+                  src={item.product?.image_url || '/fallback.png'}
+                  alt={item.product?.name || 'Imagen del producto'}
+                  width={160}
+                  height={160}
                   className="w-full md:w-40 h-40 object-cover rounded"
                 />
                 <div className="flex-1 flex flex-col justify-between">

@@ -8,6 +8,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Seleccion() {
   type Espacio = {
@@ -102,10 +103,11 @@ export default function Seleccion() {
                       : "border-gray-200 bg-white"
                   }`}
                 >
-                  <img
+                  <Image
                     src={espacio.image}
                     alt={espacio.name}
                     className="w-full h-40 object-cover"
+                    width={300} height={160}
                   />
                   <div className="p-2 text-center">
                     <h3 className="text-base font-bold">{espacio.name}</h3>
@@ -128,10 +130,11 @@ export default function Seleccion() {
                       : "border-gray-200 bg-white"
                   }`}
                 >
-                  <img
+                  <Image
                     src={estilo.image}
                     alt={estilo.name}
                     className="w-full h-40 object-cover"
+                    width={300} height={160}
                   />
                   <div className="p-2 text-center">
                     <h3 className="text-base font-bold">{estilo.name}</h3>

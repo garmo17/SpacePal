@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import Image from "next/image";
 
 export default function Page() {
   return (
@@ -29,18 +30,16 @@ export default function Page() {
         </div>
       </Header>
 
-      {/* Contenido principal */}
       <main className="flex flex-col md:flex-row flex-1 px-12 py-16 gap-16 items-center">
-        {/* Imagen */}
         <div className="flex-1 flex justify-center">
-          <img
+          <Image
             src="/imagen_pantalla_principal.png"
             alt="Decoración"
             className="max-w-lg w-full rounded-xl shadow-xl"
+            width={300} height={160}
           />
         </div>
 
-        {/* Texto */}
         <div className="flex-1 flex flex-col justify-center space-y-8 max-w-2xl pr-4">
           <h1 className="text-5xl font-bold leading-tight">
             Encuentra el estilo perfecto para tu espacio

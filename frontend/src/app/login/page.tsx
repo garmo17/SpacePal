@@ -1,4 +1,5 @@
 "use client";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +9,6 @@ import Footer from "@/components/Footer";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState } from "react";
 import axios from "@/lib/axios";
 import {
   Form,
@@ -21,6 +21,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "react-hot-toast";
+import Image from "next/image";
 
 const loginSchema = z.object({
   username: z.string().min(3, { message: "El nombre de usuario es requerido" }),
@@ -38,37 +39,43 @@ export default function LoginPage() {
     },
   });
 
-const onSubmit = async (values: z.infer<typeof loginSchema>) => {
-  try {
-    const formData = new URLSearchParams();
-    formData.append("username", values.username);
-    formData.append("password", values.password);
+  const onSubmit = async (values: z.infer<typeof loginSchema>) => {
+    try {
+      const formData = new URLSearchParams();
+      formData.append("username", values.username);
+      formData.append("password", values.password);
 
-    const response = await axios.post("/auth/token", formData, {
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    });
+      // Solicitud para obtener el token
+      const response = await axios.post("/auth/token", formData, {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      });
 
-    const accessToken = response.data.access_token;
+      const accessToken = response.data.access_token;
 
-    const meResponse = await axios.get("/users/me", {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
+      // Obtener datos del usuario autenticado
+      const meResponse = await axios.get("/users/me", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
 
-    const { username, id } = meResponse.data;
+      const { username, id } = meResponse.data;
 
-    login(accessToken, username, id);
+      login(accessToken, username, id);
 
-    toast.success("¡Inicio de sesión exitoso!");
-    form.reset();
+      toast.success("¡Inicio de sesión exitoso!");
+      form.reset();
 
-    setTimeout(() => {
-      router.push("/");
-    }, 1000);
-  } catch (err: any) {
-    console.error(err);
-    toast.error("Usuario o contraseña incorrectos");
-  }
-};
+      setTimeout(() => {
+        router.push("/");
+      }, 1000);
+    } catch (err) {
+      console.error(err);
+      toast.error("Usuario o contraseña incorrectos");
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -79,7 +86,7 @@ const onSubmit = async (values: z.infer<typeof loginSchema>) => {
       </Header>
 
       <main className="flex flex-1 flex-col items-center justify-center p-8 gap-6">
-        <img src="/Logo2.png" alt="Logo SpacePal" className="h-24" />
+        <Image src="/Logo2.png" alt="Logo SpacePal" className="h-24" width={100} height={200}/>
 
         <Card className="w-full max-w-md shadow-lg">
           <CardHeader>
