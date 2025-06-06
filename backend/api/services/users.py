@@ -61,7 +61,7 @@ async def update_user(id: str, updated_data: UserUpdate):
                     {"username": updated_data.username},
                     {"email": updated_data.email}
                 ],
-                "_id": {"$ne": ObjectId(id)}  # ⚠️ no cuentes al usuario actual
+                "_id": {"$ne": ObjectId(id)}
             })
             if existing_users > 0:
                 return None

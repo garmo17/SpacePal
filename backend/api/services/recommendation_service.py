@@ -59,7 +59,7 @@ async def get_personalized(space: str, style: str, user: Optional[UserDB], limit
     quality_scores_normalized = normalize_scores(quality_scores)
 
 
-    alpha, beta = 0.70, 0.40
+    alpha, beta = 0.70, 0.30
     final_scores = [
         alpha * sim + beta * qual
         for sim, qual in zip(similarity_scores, quality_scores_normalized)
