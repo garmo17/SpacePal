@@ -22,7 +22,6 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "react-hot-toast";
 
-// Esquema de validación con zod
 const loginSchema = z.object({
   username: z.string().min(3, { message: "El nombre de usuario es requerido" }),
   password: z.string().min(6, { message: "La contraseña debe tener al menos 6 caracteres" }),
@@ -45,27 +44,23 @@ const onSubmit = async (values: z.infer<typeof loginSchema>) => {
     formData.append("username", values.username);
     formData.append("password", values.password);
 
-    // 1️⃣ Autentica y consigue el token
     const response = await axios.post("/auth/token", formData, {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
     });
 
     const accessToken = response.data.access_token;
 
-    // 2️⃣ Consigue los datos reales del usuario
     const meResponse = await axios.get("/users/me", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
     const { username, id } = meResponse.data;
 
-    // 3️⃣ Llama a login del AuthContext
     login(accessToken, username, id);
 
     toast.success("¡Inicio de sesión exitoso!");
     form.reset();
 
-    // 4️⃣ Redirige al home o donde quieras
     setTimeout(() => {
       router.push("/");
     }, 1000);

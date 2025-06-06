@@ -16,12 +16,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import Footer from "@/components/Footer";
 import { toast } from "react-hot-toast";
 
-// Esquema para el nombre de usuario
 const profileSchema = z.object({
   username: z.string().min(3, { message: "El nombre de usuario es requerido" }),
 });
 
-// Esquema para cambiar la contraseña
 const passwordSchema = z.object({
   newPassword: z.string().min(6, { message: "La nueva contraseña debe tener al menos 6 caracteres" }),
 });
@@ -56,14 +54,12 @@ export default function ProfilePage() {
     if (!loading && isAuthenticated) fetchUserData();
   }, [loading, isAuthenticated, form]);
 
-  // Handler para actualizar nombre de usuario
   const onSubmitProfile = async (values: z.infer<typeof profileSchema>) => {
     try {
       await axios.put(`/users/${userId}`, values, {
         headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
       });
 
-      // Obtener datos actualizados
       const { data: userData } = await axios.get("/users/me", {
         headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
       });
@@ -77,7 +73,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Handler para cambiar la contraseña
   const onSubmitPassword = async (values: z.infer<typeof passwordSchema>) => {
     try {
       await axios.put(`/users/${userId}`, {
@@ -113,13 +108,11 @@ export default function ProfilePage() {
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
 
-              {/* Mostrar el email */}
               <div>
                 <p className="text-sm text-muted-foreground">Correo electrónico:</p>
                 <p className="font-semibold">{email}</p>
               </div>
 
-              {/* Formulario para actualizar nombre de usuario */}
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmitProfile)} className="flex flex-col gap-4">
                   <FormField
@@ -149,7 +142,6 @@ export default function ProfilePage() {
                 </form>
               </Form>
 
-              {/* Formulario para cambiar la contraseña */}
               <Form {...passwordForm}>
                 <form onSubmit={passwordForm.handleSubmit(onSubmitPassword)} className="flex flex-col gap-4">
                   <FormField

@@ -199,10 +199,10 @@ async def import_products_from_excel(file_bytes: bytes) -> dict:
             if existing == 0:
                 valid_products.append(validated.model_dump(mode="json"))
             else:
-                skipped_count += 1  # Ya existía
+                skipped_count += 1
                 print(f"Product {product.get('name', 'unknown')} already exists, skipping.")
         except ValidationError as e:
-            skipped_count += 1  # No válido
+            skipped_count += 1
             print(f"Validation error for product {product.get('name', 'unknown')}: {e}")
 
     if valid_products:
@@ -277,7 +277,7 @@ async def delete_product_review(product_id: str, review_id: str, user_id: str) -
     ]
 
     if len(updated_reviews) == len(product.reviews):
-        return False  # No se encontró la review
+        return False
 
     review_count = len(updated_reviews)
     rating = round(

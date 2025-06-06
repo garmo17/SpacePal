@@ -75,7 +75,6 @@ export default function CataloguePage() {
       const espacioNombre = espacios.find(e => e.id === espacioElegido)?.name ?? "";
       const estiloNombre = estilos.find(e => e.id === estiloElegido)?.name ?? "";
 
-      // Si alguno sigue sin resolverse, cancela
       if (!espacioNombre || !estiloNombre) {
         setIsLoading(false);
         return;
@@ -263,7 +262,6 @@ export default function CataloguePage() {
         <div className="mb-6">
           <h2 className="text-xl font-semibold mb-4">Filtrar por espacio y estilo</h2>
           <div className="flex flex-col sm:flex-row gap-4">
-            {/* Selector de espacios */}
             <div className="flex flex-col">
               <label className="text-sm font-medium mb-1" htmlFor="espacio-select">Espacio:</label>
               <select
@@ -279,7 +277,6 @@ export default function CataloguePage() {
               </select>
             </div>
 
-            {/* Selector de estilos */}
             <div className="flex flex-col">
               <label className="text-sm font-medium mb-1" htmlFor="estilo-select">Estilo:</label>
               <select

@@ -65,7 +65,6 @@ export default function Seleccion() {
     }
   };
 
-  // Encontrar el nombre del espacio/estilo elegido según el ID guardado
   const espacioSeleccionado = espacios.find((e) => e.id === espacioElegido);
   const estiloSeleccionado = estilos.find((e) => e.id === estiloElegido);
 
@@ -90,7 +89,6 @@ export default function Seleccion() {
         <h1 className="text-2xl font-bold mb-4">Selecciona tu espacio y estilo</h1>
 
         <div className="flex w-full max-w-6xl h-[500px] gap-6">
-          {/* ESPACIOS */}
           <div className="flex-1 flex flex-col border-r overflow-y-auto pr-4">
             <h2 className="text-center text-lg font-semibold mb-2">Espacios</h2>
             <div className="grid grid-cols-1 gap-3">
@@ -115,7 +113,6 @@ export default function Seleccion() {
             </div>
           </div>
 
-          {/* ESTILOS */}
           <div className="flex-1 flex flex-col overflow-y-auto pl-4">
             <h2 className="text-center text-lg font-semibold mb-2">Estilos</h2>
             <div className="grid grid-cols-1 gap-3">

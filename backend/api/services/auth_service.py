@@ -7,7 +7,7 @@ from typing import Optional
 from backend.api.models.users import UserDB
 from backend.api.db.database import users_collection
 from dotenv import load_dotenv
-from bson import ObjectId  # 💡 Necesario para buscar por ObjectId en MongoDB
+from bson import ObjectId
 import os
 
 load_dotenv()
@@ -40,7 +40,6 @@ async def get_user(username: str) -> Optional[UserDB]:
     return None
 
 
-# 🔥 NUEVO: Buscar usuario por _id
 async def get_user_by_id(user_id: str) -> Optional[UserDB]:
     user_dict = await users_collection.find_one({"_id": ObjectId(user_id)})
     if user_dict:
@@ -81,7 +80,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserDB:
     except JWTError:
         raise credentials_exception
 
-    # 🔥 Usar búsqueda por _id
     user = await get_user_by_id(user_id)
     if user is None:
         raise credentials_exception

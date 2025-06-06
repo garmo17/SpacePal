@@ -5,25 +5,21 @@ import requests
 import random
 import asyncio
 from backend.api.ml.categorization import categorize_product_by_description
-from backend.api.services.categorization_service import load_embeddings  # ✅ Usa la función ya existente
+from backend.api.services.categorization_service import load_embeddings
 
-# === CONFIGURACIÓN ===
 input_har = "backend/api/data/www.ikea.com.har"
 output_excel = "backend/api/output/products.xlsx"
 base_url = "https://www.ikea.com"
 
 async def main():
-    # 1️⃣ Carga embeddings usando la función centralizada
     category_embeddings, space_embeddings, style_embeddings, space_names, style_names = await load_embeddings()
 
-    # 2️⃣ Carga archivo HAR
     with open(input_har, 'r', encoding='utf-8') as f:
         har_data = json.load(f)
 
     productos = []
     visited_urls = set()
 
-    # 3️⃣ Procesa entradas del HAR
     for entry in har_data["log"]["entries"]:
         url = entry["request"]["url"]
         if "shoppable-fragment" not in url or url in visited_urls:
@@ -31,7 +27,6 @@ async def main():
 
         visited_urls.add(url)
 
-        # Obtener contenido HTML
         content = entry.get("response", {}).get("content", {}).get("text", "")
         if not content:
             try:
@@ -41,17 +36,14 @@ async def main():
 
         soup = BeautifulSoup(content, 'html.parser')
 
-        # Nombre
         div = soup.select_one(".pip-shoppable-price-package")
         if not div:
             continue
         name = div.get("data-product-name", "").strip()
 
-        # Descripción
         desc_tag = soup.find("span", class_="pip-header-section__description-text")
         description_1 = desc_tag.get_text(strip=True) if desc_tag else ""
 
-        # Precio
         price_int = soup.find("span", class_="pip-price__integer")
         price_dec = soup.find("span", class_="pip-price__decimal")
         price_str = f"{price_int.get_text(strip=True)}{price_dec.get_text(strip=True)}" if price_int and price_dec else ""
@@ -60,11 +52,9 @@ async def main():
         except:
             price = None
 
-        # Enlace al producto
         link_tag = soup.find("a", class_="pip-shoppable-price-package__link")
         purchase_link = link_tag["href"] if link_tag else ""
 
-        # Cargar HTML del producto completo para obtener imagen y descripción extendida
         try:
             product_html = requests.get(purchase_link).text
             product_soup = BeautifulSoup(product_html, 'html.parser')
@@ -77,7 +67,6 @@ async def main():
             image_url = ""
             full_description = description_1
 
-        # Categoría, espacios y estilos
         category, spaces, styles = await categorize_product_by_description(
             full_description,
             category_embeddings,
@@ -87,7 +76,6 @@ async def main():
             style_names
         )
 
-        # Guarda producto con campos extra
         productos.append({
             "name": name,
             "description": full_description,
@@ -102,7 +90,6 @@ async def main():
             "reviews": []
         })
 
-        # Debug de consola
         print({
             "name": name,
             "description": full_description,
@@ -117,7 +104,6 @@ async def main():
             "reviews": productos[-1]["reviews"]
         })
 
-    # 4️⃣ Guarda a Excel
     df = pd.DataFrame(productos)
     df.to_excel(output_excel, index=False)
     print(f"✅ Guardado: {output_excel} ({len(df)} productos)")

@@ -124,7 +124,6 @@ function CartPageContent() {
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <Header />
       <main className="flex flex-col md:flex-row flex-1 p-8 gap-8">
-        {/* Columna izquierda: Productos */}
         <div className="flex-1 flex flex-col gap-4">
           <h1 className="text-3xl font-bold">
             🛒 Carrito de {user ?? "Invitado"}
@@ -191,7 +190,6 @@ function CartPageContent() {
           )}
         </div>
 
-        {/* Columna derecha: Resumen */}
         <div className="md:w-72 w-full sticky top-4 self-start">
           <Card className="p-4 shadow-lg">
             <h2 className="text-xl font-bold mb-2">Resumen</h2>
@@ -235,7 +233,6 @@ function CartPageContent() {
   );
 }
 
-// 👇 Exportamos un wrapper que protege toda la página
 export default function CartPageWrapper() {
   return (
     <ProtectedPage>

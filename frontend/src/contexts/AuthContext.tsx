@@ -43,7 +43,7 @@ useEffect(() => {
           setIsAuthenticated(true);
           setUser(username);
           setUserId(data.id);
-          setIsAdmin(username === 'admin'); // 💡 solo admin tiene acceso
+          setIsAdmin(username === 'admin');
         } else {
           logout();
         }
@@ -61,7 +61,7 @@ const login = (token: string, username: string, id: string) => {
   localStorage.setItem('access_token', token);
   localStorage.setItem('username', username);
   localStorage.setItem('userId', id);
-  localStorage.setItem('isAdmin', JSON.stringify(username === 'admin')); // 💡 guarda admin
+  localStorage.setItem('isAdmin', JSON.stringify(username === 'admin'));
   setIsAuthenticated(true);
   setUser(username);
   setUserId(id);

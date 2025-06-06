@@ -7,7 +7,6 @@ import React, {
   PropsWithChildren,
 } from "react";
 
-// Tipo del contexto
 type SelectionContextType = {
   espacioElegido: string;
   estiloElegido: string;
@@ -15,10 +14,8 @@ type SelectionContextType = {
   setEstiloElegido: (estilo: string) => void;
 };
 
-// Contexto real tipado
 const SelectionContext = createContext<SelectionContextType | null>(null);
 
-// Hook personalizado
 export const useSelection = () => {
   const context = useContext(SelectionContext);
   if (!context) throw new Error("useSelection debe usarse dentro de <SelectionProvider>");
