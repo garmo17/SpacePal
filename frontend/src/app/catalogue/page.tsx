@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSelection } from "@/contexts/SelectionContext";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import axios from "@/lib/axios";
+import Link from "next/link";
+import Image from "next/image";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import toast from "react-hot-toast";
-import Image from "next/image";
-import axios from "@/lib/axios";
+
 
 interface Product {
   id: string;
@@ -22,25 +23,46 @@ interface Product {
 }
 
 const category_labels = [
-  "lighting", "home decor and accessories", "storage and organization", "tables and chairs",
-  "desks and desk chairs", "home textiles", "sofas and armchairs", "flooring, rugs and mats",
-  "outdoor", "plants and gardening", "beds and mattresses", "smart home and technology", "kitchen and tableware",
+  "lighting",
+  "home decor and accessories",
+  "storage and organization",
+  "tables and chairs",
+  "desks and desk chairs",
+  "home textiles",
+  "sofas and armchairs",
+  "flooring, rugs and mats",
+  "outdoor",
+  "plants and gardening",
+  "beds and mattresses",
+  "smart home and technology",
+  "kitchen and tableware",
 ];
 
 export default function CataloguePage() {
   const { isAuthenticated } = useAuth();
-  const { espacioElegido, estiloElegido, setEspacioElegido, setEstiloElegido } = useSelection();
+  const {
+    espacioElegido,
+    estiloElegido,
+    setEspacioElegido,
+    setEstiloElegido,
+  } = useSelection();
+  const router = useRouter();
+
   const [products, setProducts] = useState<Product[]>([]);
   const [originalProducts, setOriginalProducts] = useState<Product[]>([]);
-  const [sortOrder, setSortOrder] = useState<'original' | 'asc' | 'desc'>('original');
+  const [sortOrder, setSortOrder] = useState<"original" | "asc" | "desc">(
+    "original",
+  );
   const [addedToCart, setAddedToCart] = useState<string | null>(null);
+
   const [offset, setOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState<string[]>([]);
+  const [hasMore, setHasMore] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const loaderRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
-  const skipNextScroll = useRef(false);
+
+  const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState<
+    string[]
+  >([]);
   const [espacios, setEspacios] = useState<{ id: string; name: string }[]>([]);
   const [estilos, setEstilos] = useState<{ id: string; name: string }[]>([]);
 
@@ -57,110 +79,120 @@ export default function CataloguePage() {
   }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      const token = localStorage.getItem("access_token");
-
-      const espacioNombre = espacios.find(e => e.id === espacioElegido)?.name ?? "";
-      const estiloNombre = estilos.find(e => e.id === estiloElegido)?.name ?? "";
-
-      if (!espacioNombre || !estiloNombre) {
-        setIsLoading(false);
-        return;
-      }
-
-      const params: any = {
-        space: espacioNombre,
-        style: estiloNombre,
-        limit: 12,
-        offset,
-      };
-
-      if (categoriasSeleccionadas.length > 0) {
-        params.categories = categoriasSeleccionadas;
-      }
-
-      try {
-        const res = await axios.get("/recommendations/user", {
-          params,
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-
-        if (res.data.length === 0) {
-          setHasMore(false);
-        } else {
-          const nuevos = res.data.filter((p: Product) => !products.some(existing => existing.id === p.id));
-          setProducts(prev => [...prev, ...nuevos]);
-          setOriginalProducts(prev => [...prev, ...nuevos]);
-        }
-      } catch (err) {
-        setHasMore(false);
-      }
-
-      setIsLoading(false);
-      skipNextScroll.current = false;
-    };
-
-    if (
-      espacioElegido &&
-      estiloElegido &&
-      espacios.length > 0 &&
-      estilos.length > 0 &&
-      !isLoading
-    ) {
-      fetchData();
-    }
-  }, [offset, espacioElegido, estiloElegido, categoriasSeleccionadas, espacios, estilos, isLoading]);
-
-  useEffect(() => {
-    skipNextScroll.current = true;
     setOffset(0);
-    setProducts([]);
-    setOriginalProducts([]);
-    setHasMore(true);
-
-    setTimeout(() => {
-      skipNextScroll.current = false;
-      setOffset(0);
-    }, 50);
   }, [espacioElegido, estiloElegido, categoriasSeleccionadas]);
 
+  const fetchData = useCallback(async () => {
+    if (
+      !espacioElegido ||
+      !estiloElegido ||
+      !espacios.length ||
+      !estilos.length
+    )
+      return;
+
+    setIsLoading(true);
+
+    const token = localStorage.getItem("access_token");
+    const espacioNombre =
+      espacios.find((e) => e.id === espacioElegido)?.name ?? "";
+    const estiloNombre =
+      estilos.find((e) => e.id === estiloElegido)?.name ?? "";
+
+    const params: Record<string, any> = {
+      space: espacioNombre,
+      style: estiloNombre,
+      limit: 12,
+      offset,
+    };
+    if (categoriasSeleccionadas.length) {
+      params.categories = categoriasSeleccionadas;
+    }
+
+    try {
+      const { data } = await axios.get("/recommendations/user", {
+        params,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        validateStatus: (status) => status < 500, 
+      });
+
+      const raw = data ?? [];
+      const lista: Product[] = Array.isArray(raw) ? raw : [];
+
+      setHasMore(lista.length === 12);
+      if (offset === 0) {
+        setProducts(lista);
+        setOriginalProducts(lista);
+      } else {
+        setProducts((prev) => {
+          const nuevos = lista.filter(
+            (p: Product) => !prev.some((e) => e.id === p.id),
+          );
+          return [...prev, ...nuevos];
+        });
+        setOriginalProducts((prev) => {
+          const nuevos = lista.filter(
+            (p: Product) => !prev.some((e) => e.id === p.id),
+          );
+          return [...prev, ...nuevos];
+        });
+      }
+
+      setHasMore(lista.length === 12);
+    } catch {
+      setHasMore(false);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [
+    espacioElegido,
+    estiloElegido,
+    espacios,
+    estilos,
+    categoriasSeleccionadas,
+    offset,
+  ]);
+
   useEffect(() => {
-    const observer = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore && !isLoading && !skipNextScroll.current) {
-        setOffset(prev => prev + 12);
+    fetchData();
+  }, [offset, fetchData]);
+
+  useEffect(() => {
+    if (!products.length) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && hasMore && !isLoading) {
+        setOffset(o => o + 12);
       }
     });
-    if (loaderRef.current) observer.observe(loaderRef.current);
-    return () => observer.disconnect();
-  }, [hasMore, isLoading]);
+    if (loaderRef.current) obs.observe(loaderRef.current);
+    return () => obs.disconnect();
+  }, [products.length, hasMore, isLoading]);
 
   const handleSortChange = () => {
-    if (sortOrder === 'original') {
-      setSortOrder('asc');
+    if (sortOrder === "original") {
+      setSortOrder("asc");
       setProducts([...products].sort((a, b) => a.price - b.price));
-    } else if (sortOrder === 'asc') {
-      setSortOrder('desc');
+    } else if (sortOrder === "asc") {
+      setSortOrder("desc");
       setProducts([...products].sort((a, b) => b.price - a.price));
     } else {
-      setSortOrder('original');
+      setSortOrder("original");
       setProducts(originalProducts);
     }
   };
 
   const handleAddToCart = async (productId: string) => {
     if (!isAuthenticated) return;
-
     try {
-      await axios.post("/users/me/cart", {
-        product_id: productId,
-        quantity: 1,
-      }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+      await axios.post(
+        "/users/me/cart",
+        { product_id: productId, quantity: 1 },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
         },
-      });
-
+      );
       toast.success("Producto añadido al carrito");
       setAddedToCart(productId);
       setTimeout(() => setAddedToCart(null), 1500);
@@ -171,21 +203,20 @@ export default function CataloguePage() {
 
   const handleProductClick = async (productId: string) => {
     if (isAuthenticated) {
-      await axios.post("/user_history/", {
-        product_id: productId,
-        action: "click",
-      }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+      await axios.post(
+        "/user_history/",
+        { product_id: productId, action: "click" },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+          },
         },
-      });
+      );
     }
     router.push(`/product/${productId}`);
   };
 
-  const handleClearCategories = () => {
-    setCategoriasSeleccionadas([]);
-  };
+  const handleClearCategories = () => setCategoriasSeleccionadas([]);
 
   return (
     <>
