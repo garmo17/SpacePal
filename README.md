@@ -71,6 +71,7 @@ Una aplicación web para recomendaciones de decoración de interiores utilizando
   - **MongoDB**
   - **OAuth2** para autenticación
   - **JWT** para gestión de tokens
+  - **Pydantic** para validación de datos
 - **Inteligencia Artificial**:
   - Embeddings de texto para representación y clasificación de productos
   - Similaridad por coseno para lógica de recomendación
