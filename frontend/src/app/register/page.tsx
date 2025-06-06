@@ -21,6 +21,7 @@ import axios from "@/lib/axios";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "react-hot-toast";
+import Image from "next/image";
 
 // 1️⃣ Esquema de validación con zod
 const formSchema = z.object({
@@ -68,9 +69,13 @@ export default function RegisterPage() {
       setTimeout(() => {
         router.push("/");
       }, 1000);
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Error al crear el usuario. El nombre usuario o el correo ya está en uso. Inténtalo de nuevo.");
+    } catch (err) {
+      if (err instanceof Error) {
+        console.error(err.message);
+      } else {
+        console.error('Unknown error');
+      }
+      toast.error("Error al crear el usuario. El nombre de usuario o correo ya están en uso.");
     }
   }
 
@@ -85,7 +90,7 @@ export default function RegisterPage() {
 
       {/* Contenido principal */}
       <main className="flex flex-1 flex-col items-center justify-center p-8 gap-6">
-        <img src="/Logo2.png" alt="Logo SpacePal" className="h-24" />
+        <Image src="/Logo2.png" alt="Logo SpacePal" className="h-24" width={100} height={200}/>
 
         <Card className="w-full max-w-md shadow-lg">
           <CardHeader>

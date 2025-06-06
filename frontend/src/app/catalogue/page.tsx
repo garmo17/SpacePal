@@ -9,6 +9,8 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import Image from "next/image";
+import axios from "@/lib/axios";
 
 interface Product {
   id: string;
@@ -20,19 +22,9 @@ interface Product {
 }
 
 const category_labels = [
-  "lighting",
-  "home decor and accessories",
-  "storage and organization",
-  "tables and chairs",
-  "desks and desk chairs",
-  "home textiles",
-  "sofas and armchairs",
-  "flooring, rugs and mats",
-  "outdoor",
-  "plants and gardening",
-  "beds and mattresses",
-  "smart home and technology",
-  "kitchen and tableware",
+  "lighting", "home decor and accessories", "storage and organization", "tables and chairs",
+  "desks and desk chairs", "home textiles", "sofas and armchairs", "flooring, rugs and mats",
+  "outdoor", "plants and gardening", "beds and mattresses", "smart home and technology", "kitchen and tableware",
 ];
 
 export default function CataloguePage() {
@@ -55,11 +47,11 @@ export default function CataloguePage() {
   useEffect(() => {
     const fetchFiltros = async () => {
       const [resEspacios, resEstilos] = await Promise.all([
-        fetch("http://localhost:8000/api/v1/spaces/"),
-        fetch("http://localhost:8000/api/v1/styles/"),
+        axios.get("/spaces/"),
+        axios.get("/styles/"),
       ]);
-      if (resEspacios.ok) setEspacios(await resEspacios.json());
-      if (resEstilos.ok) setEstilos(await resEstilos.json());
+      setEspacios(resEspacios.data);
+      setEstilos(resEstilos.data);
     };
     fetchFiltros();
   }, []);
@@ -67,10 +59,7 @@ export default function CataloguePage() {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-
       const token = localStorage.getItem("access_token");
-      const headers: HeadersInit = { "Content-Type": "application/json" };
-      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const espacioNombre = espacios.find(e => e.id === espacioElegido)?.name ?? "";
       const estiloNombre = estilos.find(e => e.id === estiloElegido)?.name ?? "";
@@ -80,39 +69,33 @@ export default function CataloguePage() {
         return;
       }
 
-      const url = new URL("http://localhost:8000/api/v1/recommendations/user");
-      url.searchParams.append("space", espacioNombre);
-      url.searchParams.append("style", estiloNombre);
-      url.searchParams.append("limit", "12");
-      url.searchParams.append("offset", offset.toString());
+      const params: any = {
+        space: espacioNombre,
+        style: estiloNombre,
+        limit: 12,
+        offset,
+      };
+
       if (categoriasSeleccionadas.length > 0) {
-        categoriasSeleccionadas.forEach(cat => url.searchParams.append("categories", cat));
+        params.categories = categoriasSeleccionadas;
       }
 
-      const res = await fetch(url.toString(), { headers });
+      try {
+        const res = await axios.get("/recommendations/user", {
+          params,
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
 
-      if (!res.ok) {
+        if (res.data.length === 0) {
+          setHasMore(false);
+        } else {
+          const nuevos = res.data.filter((p: Product) => !products.some(existing => existing.id === p.id));
+          setProducts(prev => [...prev, ...nuevos]);
+          setOriginalProducts(prev => [...prev, ...nuevos]);
+        }
+      } catch (err) {
         setHasMore(false);
-        setIsLoading(false);
-        return;
       }
-
-      const data = await res.json();
-      if (data.length === 0) {
-        setHasMore(false);
-        setIsLoading(false);
-        return;
-      }
-
-      setProducts(prev => {
-        const nuevos = data.filter((p: Product) => !prev.some(existing => existing.id === p.id));
-        return [...prev, ...nuevos];
-      });
-
-      setOriginalProducts(prev => {
-        const nuevos = data.filter((p: Product) => !prev.some(existing => existing.id === p.id));
-        return [...prev, ...nuevos];
-      });
 
       setIsLoading(false);
       skipNextScroll.current = false;
@@ -127,8 +110,7 @@ export default function CataloguePage() {
     ) {
       fetchData();
     }
-  }, [offset, espacioElegido, estiloElegido, categoriasSeleccionadas, espacios, estilos]);
-
+  }, [offset, espacioElegido, estiloElegido, categoriasSeleccionadas, espacios, estilos, isLoading]);
 
   useEffect(() => {
     skipNextScroll.current = true;
@@ -168,33 +150,34 @@ export default function CataloguePage() {
 
   const handleAddToCart = async (productId: string) => {
     if (!isAuthenticated) return;
-    const res = await fetch("http://localhost:8000/api/v1/users/me/cart", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-      },
-      body: JSON.stringify({ product_id: productId, quantity: 1 }),
-    });
 
-    if (res.ok) {
+    try {
+      await axios.post("/users/me/cart", {
+        product_id: productId,
+        quantity: 1,
+      }, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+        },
+      });
+
       toast.success("Producto añadido al carrito");
       setAddedToCart(productId);
       setTimeout(() => setAddedToCart(null), 1500);
-    } else {
+    } catch {
       toast.error("No se pudo añadir al carrito");
     }
   };
 
   const handleProductClick = async (productId: string) => {
     if (isAuthenticated) {
-      await fetch("http://localhost:8000/api/v1/user_history/", {
-        method: "POST",
+      await axios.post("/user_history/", {
+        product_id: productId,
+        action: "click",
+      }, {
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
-        body: JSON.stringify({ product_id: productId, action: "click" }),
       });
     }
     router.push(`/product/${productId}`);
@@ -302,7 +285,13 @@ export default function CataloguePage() {
               className="border rounded-xl shadow hover:shadow-lg cursor-pointer overflow-hidden"
               onClick={() => handleProductClick(product.id)}
             >
-              <img src={product.image_url} alt={product.name} className="w-full h-40 object-contain bg-white" />
+              <Image
+                src={product.image_url}
+                alt={product.name}
+                width={300}
+                height={160}
+                className="w-full h-40 object-contain bg-white"
+              />
               <div className="p-4">
                 <h2 className="text-lg font-semibold mb-2">{product.name}</h2>
                 <p className="text-gray-700 mb-1">{product.price.toFixed(2)} €</p>
