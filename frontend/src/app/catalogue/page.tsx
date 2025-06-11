@@ -66,6 +66,14 @@ export default function CataloguePage() {
   const [espacios, setEspacios] = useState<{ id: string; name: string }[]>([]);
   const [estilos, setEstilos] = useState<{ id: string; name: string }[]>([]);
 
+  interface RecommendationParams {
+    space: string;
+    style: string;
+    limit: number;
+    offset: number;
+    categories?: string[];
+  }
+
   useEffect(() => {
     const fetchFiltros = async () => {
       const [resEspacios, resEstilos] = await Promise.all([
@@ -99,7 +107,7 @@ export default function CataloguePage() {
     const estiloNombre =
       estilos.find((e) => e.id === estiloElegido)?.name ?? "";
 
-    const params: Record<string, any> = {
+    const params: RecommendationParams = {
       space: espacioNombre,
       style: estiloNombre,
       limit: 12,

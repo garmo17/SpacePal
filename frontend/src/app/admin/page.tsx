@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Admin, Resource, List, Datagrid, TextField, Edit, SimpleForm, TextInput, Create, NumberField, NumberInput, UrlField, ImageField } from 'react-admin';
+import { Admin, ReferenceArrayField , Resource, ChipField, SingleFieldList, List, Datagrid, TextField, Edit, SimpleForm, TextInput, Create, NumberField, NumberInput, UrlField, ImageField } from 'react-admin';
 import { useAuth } from '@/contexts/AuthContext';
 import dataProvider from '@/lib/dataProvider';
 import { DateField } from 'react-admin';
@@ -85,9 +85,20 @@ const ProductList = () => (
       <UrlField source="purchase_link" />
       <ImageField source="image_url" />
       <TextField source="category" />
+      <ReferenceArrayField label="Spaces" reference="spaces" source="spaces">
+        <SingleFieldList>
+          <ChipField source="name" />
+        </SingleFieldList>
+      </ReferenceArrayField>
+      <ReferenceArrayField label="Styles" reference="styles" source="styles">
+        <SingleFieldList>
+          <ChipField source="name" />
+        </SingleFieldList>
+      </ReferenceArrayField>
     </Datagrid>
   </List>
 );
+
 
 const ProductEdit = () => (
   <Edit>
