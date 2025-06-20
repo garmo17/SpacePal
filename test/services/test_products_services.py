@@ -220,7 +220,6 @@ async def test_create_products_bulk_success():
         "reviews": []
     }
 
-    # Simulamos el comportamiento de find_one para cada producto
     async def find_one_side_effect(query):
         if query["purchase_link"] == "http://example.com/lampara1":
             return existing_doc
